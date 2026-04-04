@@ -153,7 +153,7 @@ router.post('/request', requireAuth, async (req, res) => {
         const subscription = await prisma.subscription.create({
             data: {
                 subscriptionNumber: subNumber,
-                status: 'PENDING_ADMIN_APPROVAL',
+                status: 'ACTIVE',
                 customerId: req.user.id,
                 planId,
                 startDate: start,
@@ -164,6 +164,13 @@ router.post('/request', requireAuth, async (req, res) => {
             include: { customer: { select: { id: true, name: true, email: true } }, plan: true, lineItems: { include: { product: true } } }
         });
 
+        let generatedInvoice = null;
+        try {
+            generatedInvoice = await generateInvoiceForSubscription(subscription.id);
+        } catch (invErr) {
+            console.error('[SUBS] Instant Invoice generation failed:', invErr.message);
+        }
+
         // Notify all admins
         const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true } });
         const customer = await prisma.user.findUnique({ where: { id: req.user.id } });
@@ -172,9 +179,9 @@ router.post('/request', requireAuth, async (req, res) => {
             await createNotification({
                 userId: admin.id,
                 type: 'subscription_request',
-                title: 'New Subscription Request',
-                message: `${customer.name} has requested subscription ${subNumber}`,
-                link: '/pending-approval.html'
+                title: 'New Auto-Subscription',
+                message: `${customer.name} started subscription ${subNumber}`,
+                link: `/subscriptions-detail.html?id=${subscription.id}`
             });
             // Send email (non-blocking)
             sendAdminNewRequestEmail(admin.email, customer, subNumber).catch(err =>
@@ -185,14 +192,19 @@ router.post('/request', requireAuth, async (req, res) => {
         // Notify the requesting user
         await createNotification({
             userId: req.user.id,
-            type: 'subscription_request',
-            title: 'Request Submitted',
-            message: `Your subscription request ${subNumber} has been submitted for approval.`,
-            link: `/subscriptions-detail.html?id=${subscription.id}`
+            type: 'approved',
+            title: 'Subscription Activated! 🎉',
+            message: `Your subscription ${subNumber} is active! Please complete your payment.`,
+            link: generatedInvoice ? `/invoices-detail.html?id=${generatedInvoice.id}` : `/subscriptions-detail.html?id=${subscription.id}`
         });
-        sendSubscriptionRequestedEmail(customer, subNumber).catch(() => {});
+        sendSubscriptionActivatedEmail(customer, subNumber).catch(() => {});
 
-        res.status(201).json({ success: true, data: subscription, message: 'Subscription request submitted. Awaiting admin approval.' });
+        res.status(201).json({ 
+            success: true, 
+            data: subscription, 
+            invoiceId: generatedInvoice ? generatedInvoice.id : null, 
+            message: 'Subscription request submitted. Redirecting to payment...' 
+        });
     } catch (err) {
         console.error('[SUBS] Request error:', err);
         res.status(500).json({ success: false, error: 'Failed to submit subscription request.' });

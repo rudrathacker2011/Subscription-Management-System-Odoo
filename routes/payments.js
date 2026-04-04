@@ -46,7 +46,7 @@ router.get('/', requireAuth, requireOwnershipOrAdmin, async (req, res) => {
 });
 
 // POST /api/payments
-router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
     try {
         const { invoiceId, amount, paymentMethod, paymentDate, referenceNumber, notes } = req.body;
         if (!invoiceId || !amount) return res.status(400).json({ success: false, error: 'Invoice and amount are required.' });

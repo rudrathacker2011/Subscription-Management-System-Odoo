@@ -127,7 +127,7 @@ async function loadData() {
             if (inv.status === 'CONFIRMED' && inv.amountDue > 0) actions.push(`<button class="btn btn-success" onclick="openPayment()">Record Payment</button>`);
             actions.push(`<button class="btn btn-outline" onclick="sendEmail()">📧 Send Email</button>`);
         } else if (inv.status === 'CONFIRMED' && inv.amountDue > 0) {
-            actions.push(`<button class="btn btn-accent" onclick="Toast.info('Online payment gateway integration pending')">Pay Now</button>`);
+            actions.push(`<button class="btn btn-accent" onclick="openPayment()">Pay Now</button>`);
         }
         document.getElementById('action-bar').innerHTML = actions.join('');
 
@@ -136,14 +136,30 @@ async function loadData() {
 
 async function confirmInv() { if(await confirmDialog('Confirm', 'Confirm this invoice?')) { await API.post(`/invoices/${id}/confirm`); Toast.success('Confirmed!'); loadData(); } }
 async function sendEmail() { await API.post(`/invoices/${id}/send-email`); Toast.success('Email sent!'); }
-function openPayment() { document.getElementById('pay-amount').value = currentDue; Modal.show('payment-modal'); }
+let paySelectUI;
+function openPayment() { 
+    document.getElementById('pay-amount').value = currentDue; 
+    Modal.show('payment-modal'); 
+    if (!paySelectUI) paySelectUI = UI.upgradeSelect('pay-method');
+}
+
 async function submitPayment() {
+    const btn = document.querySelector('#payment-modal .btn-primary');
+    const orgHtml = btn.innerHTML;
     try {
         const amount = parseFloat(document.getElementById('pay-amount').value);
         if(amount <= 0 || amount > currentDue) return Toast.error('Invalid amount');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner-xs"></div> Recording...';
+
         await API.post(`/payments`, { invoiceId: id, amount, paymentMethod: document.getElementById('pay-method').value, referenceNumber: document.getElementById('pay-ref').value });
         Toast.success('Payment recorded!'); Modal.hide('payment-modal'); loadData();
-    } catch (e) { Toast.error(e.message); }
+    } catch (e) { 
+        Toast.error(e.message); 
+        btn.disabled = false;
+        btn.innerHTML = orgHtml;
+    }
 }
 
 loadData();

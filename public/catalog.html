@@ -182,24 +182,42 @@ function removeFromCart(index) {
 }
 
 async function submitRequest() {
+  const btn = document.querySelector('#cart-modal .btn-primary');
+  const orgHtml = btn.innerHTML;
+  
   try {
     const planId = document.getElementById('cart-plan').value;
     if (!planId) return Toast.error('Please select a plan');
     if (cart.length === 0) return Toast.error('Cart is empty');
+
+    // Start Loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner-xs"></div> Submitting...';
 
     const lineItems = cart.map(c => ({
       productId: c.productId,
       quantity: c.quantity
     }));
 
-    await API.post('/subscriptions/request', { planId, lineItems });
-    Toast.success('Subscription request submitted! Awaiting admin approval.');
+    const res = await API.post('/subscriptions/request', { planId, lineItems });
+    Toast.success('Subscription activated! Redirecting to payment...');
     Modal.hide('cart-modal');
     cart = [];
     updateCartUI();
     renderProducts();
+    
+    setTimeout(() => {
+        if (res.invoiceId) {
+            window.location.href = `/invoices-detail.html?id=${res.invoiceId}`;
+        } else {
+            window.location.href = '/subscriptions.html';
+        }
+    }, 1500);
   } catch (err) {
     Toast.error(err.message);
+    // Reset button on error
+    btn.disabled = false;
+    btn.innerHTML = orgHtml;
   }
 }
 

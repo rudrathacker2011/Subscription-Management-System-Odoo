@@ -78,6 +78,7 @@ async function generateInvoiceForSubscription(subscriptionId) {
             invoiceNumber: invNumber,
             customerId: subscription.customerId,
             subscriptionId: subscription.id,
+            status: 'CONFIRMED',
             subtotal, taxAmount: 0, discountAmount, total,
             amountPaid: 0, amountDue: total,
             dueDate,
