@@ -19,7 +19,9 @@ router.get('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, res
             ];
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const pageNum = parseInt(page) || 1;
+        const limitNum = parseInt(limit) || 20;
+        const skip = (pageNum - 1) * limitNum;
         const [users, total] = await Promise.all([
             prisma.user.findMany({
                 where,
