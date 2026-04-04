@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join the Mission - Ignite 2026</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for symbols -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="container" style="max-width: 480px;">
+        <h2>Deploy Your Profile</h2>
+        <form id="register-form">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="john@enterprise.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Security Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+                
+                <!-- 🛡️ PASSWORD STRENGTH SCORECARD -->
+                <div class="password-requirements" id="requirements">
+                    <div class="requirement" id="req-length"><i class="fa-solid fa-circle-dot"></i> 8+ Characters</div>
+                    <div class="requirement" id="req-upper"><i class="fa-solid fa-circle-dot"></i> Uppercase Letter</div>
+                    <div class="requirement" id="req-lower"><i class="fa-solid fa-circle-dot"></i> Lowercase Letter</div>
+                    <div class="requirement" id="req-number"><i class="fa-solid fa-circle-dot"></i> A Number</div>
+                    <div class="requirement" id="req-special"><i class="fa-solid fa-circle-dot"></i> Special (!@#$%^&*)</div>
+                </div>
+            </div>
+            <div class="form-group secret-field">
+                <label for="adminSecret">Admin Access Code (Optional)</label>
+                <input type="password" id="adminSecret" placeholder="For system architects only">
+            </div>
+            <button type="submit" id="btn-submit">Initialize Account</button>
+            <p class="error" id="error-message"></p>
+        </form>
+        <p class="switch-link">Part of the squad already? <a href="/index.html">Access Terminal</a></p>
+    </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const requirements = {
+            length: document.getElementById('req-length'),
+            upper: document.getElementById('req-upper'),
+            lower: document.getElementById('req-lower'),
+            number: document.getElementById('req-number'),
+            special: document.getElementById('req-special'),
+        };
+
+        const validate = () => {
+            const val = passwordInput.value;
+            
+            const checks = {
+                length: val.length >= 8,
+                upper: /[A-Z]/.test(val),
+                lower: /[a-z]/.test(val),
+                number: /[0-9]/.test(val),
+                special: /[!@#$%^&*]/.test(val),
+            };
+
+            for (const key in checks) {
+                if (checks[key]) {
+                    requirements[key].classList.add('valid');
+                    requirements[key].querySelector('i').className = 'fa-solid fa-circle-check';
+                } else {
+                    requirements[key].classList.remove('valid');
+                    requirements[key].querySelector('i').className = 'fa-solid fa-circle-dot';
+                }
+            }
+            return Object.values(checks).every(v => v);
+        };
+
+        passwordInput.addEventListener('input', validate);
+
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!validate()) {
+                document.getElementById('error-message').textContent = 'Follow the security scorecard first.';
+                return;
+            }
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = passwordInput.value;
+            const adminSecret = document.getElementById('adminSecret').value;
+            const errorP = document.getElementById('error-message');
+
+            try {
+                const res = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, adminSecret })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    location.assign('/dashboard.html');
+                } else {
+                    errorP.textContent = data.error || 'Interface error. Please retry.';
+                }
+            } catch (err) {
+                console.error(err);
+                errorP.textContent = 'Critical system error. Check console.';
+            }
+        });
+    </script>
+</body>
+
+</html>

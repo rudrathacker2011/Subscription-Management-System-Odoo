@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discounts — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">Discounts</div></header>
+<main class="page-content">
+<div class="page-header-row">
+  <div class="page-header"><h1>Discounts</h1><p>Manage promotional codes and discount rules</p></div>
+  <button class="btn btn-primary" onclick="openCreate()">+ New Discount</button>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Code</th><th>Type & Value</th><th>Applies To</th><th>Usage</th><th>Valid Until</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="disc-table"><tr><td colspan="8" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+</main>
+</div>
+</div>
+
+<div id="disc-modal" class="modal-overlay">
+<div class="modal modal-lg">
+  <div class="modal-header"><div class="modal-title" id="modal-title">New Discount</div><button class="modal-close">✕</button></div>
+  <div class="modal-body">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Discount Name <span class="required">*</span></label><input type="text" id="d-name" class="form-input" placeholder="e.g., Summer Sale 2024"></div>
+      <div class="form-group"><label class="form-label">Code <span class="required">*</span></label><input type="text" id="d-code" class="form-input" placeholder="e.g., SUMMER2024" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Discount Type <span class="required">*</span></label>
+        <select id="d-type" class="form-select" onchange="updateValueLabel()"><option value="PERCENTAGE">Percentage (%)</option><option value="FIXED">Fixed Amount (₹)</option></select></div>
+      <div class="form-group"><label class="form-label" id="d-value-label">Value (%) <span class="required">*</span></label><input type="number" id="d-value" class="form-input" placeholder="e.g., 10" min="0" step="0.01"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">Min Purchase (₹)</label><input type="number" id="d-min-amt" class="form-input" placeholder="Optional" min="0"></div>
+      <div class="form-group"><label class="form-label">Min Quantity</label><input type="number" id="d-min-qty" class="form-input" placeholder="Optional" min="1"></div>
+      <div class="form-group"><label class="form-label">Usage Limit</label><input type="number" id="d-limit" class="form-input" placeholder="∞ Unlimited" min="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start Date</label><input type="date" id="d-start" class="form-input"></div>
+      <div class="form-group"><label class="form-label">End Date</label><input type="date" id="d-end" class="form-input"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Applies To</label>
+      <select id="d-applies" class="form-select"><option value="BOTH">Both (Products & Subscriptions)</option><option value="PRODUCTS">Products Only</option><option value="SUBSCRIPTIONS">Subscriptions Only</option></select></div>
+    <label class="form-check mt-1"><input type="checkbox" id="d-active" checked><span class="form-check-label">Is Active</span></label>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="Modal.hide('disc-modal')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveDiscount()">Save Discount</button>
+  </div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth(['ADMIN'])) throw new Error();
+let editId = null;
+
+function updateValueLabel() { document.getElementById('d-value-label').textContent = document.getElementById('d-type').value === 'PERCENTAGE' ? 'Value (%) *' : 'Value (₹) *'; }
+document.addEventListener('DOMContentLoaded', loadDiscounts);
+
+async function loadDiscounts() {
+  const tbody = document.getElementById('disc-table');
+  try {
+    const res = await API.get('/discounts');
+    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="8" class="table-empty"><div class="empty-icon">🏷️</div><p>No discounts yet</p></td></tr>'; return; }
+    tbody.innerHTML = res.data.map(d => `
+      <tr>
+        <td><div style="font-weight:600">${d.name}</div></td>
+        <td><code style="background:var(--primary-light);color:var(--primary);padding:3px 8px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12.5px">${d.code}</code></td>
+        <td>${d.discountType === 'PERCENTAGE' ? `<span class="text-success fw-bold">${d.value}% OFF</span>` : `<span class="text-success fw-bold">₹${d.value} OFF</span>`}</td>
+        <td><span class="tag">${d.appliesTo}</span></td>
+        <td>${d.currentUsage}${d.limitUsage ? ` / ${d.limitUsage}` : ' / ∞'}</td>
+        <td style="font-size:12.5px">${d.endDate ? fmt.date(d.endDate) : '—'}</td>
+        <td>${fmt.badge(d.isActive ? 'ACTIVE' : 'CLOSED')}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-xs" onclick="openEdit(${JSON.stringify(d).replace(/"/g,'&quot;')})">Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteDiscount('${d.id}','${d.name.replace(/'/g,"\\'")}')">Delete</button>
+        </div></td>
+      </tr>`).join('');
+  } catch (err) { Toast.error(err.message); }
+}
+
+function openCreate() { editId=null; document.getElementById('modal-title').textContent='New Discount'; ['d-name','d-code','d-min-amt','d-min-qty','d-limit'].forEach(id=>document.getElementById(id).value=''); document.getElementById('d-value').value=''; document.getElementById('d-type').value='PERCENTAGE'; document.getElementById('d-applies').value='BOTH'; ['d-start','d-end'].forEach(id=>document.getElementById(id).value=''); document.getElementById('d-active').checked=true; updateValueLabel(); Modal.show('disc-modal'); }
+function openEdit(d) { editId=d.id; document.getElementById('modal-title').textContent='Edit Discount'; document.getElementById('d-name').value=d.name; document.getElementById('d-code').value=d.code; document.getElementById('d-type').value=d.discountType; document.getElementById('d-value').value=d.value; document.getElementById('d-min-amt').value=d.minPurchaseAmount||''; document.getElementById('d-min-qty').value=d.minQuantity||''; document.getElementById('d-limit').value=d.limitUsage||''; document.getElementById('d-start').value=d.startDate?d.startDate.split('T')[0]:''; document.getElementById('d-end').value=d.endDate?d.endDate.split('T')[0]:''; document.getElementById('d-applies').value=d.appliesTo; document.getElementById('d-active').checked=d.isActive; updateValueLabel(); Modal.show('disc-modal'); }
+
+async function saveDiscount() {
+  const payload = { name: document.getElementById('d-name').value.trim(), code: document.getElementById('d-code').value.trim(), discountType: document.getElementById('d-type').value, value: parseFloat(document.getElementById('d-value').value), minPurchaseAmount: parseFloat(document.getElementById('d-min-amt').value)||null, minQuantity: parseInt(document.getElementById('d-min-qty').value)||null, limitUsage: parseInt(document.getElementById('d-limit').value)||null, startDate: document.getElementById('d-start').value||null, endDate: document.getElementById('d-end').value||null, appliesTo: document.getElementById('d-applies').value, isActive: document.getElementById('d-active').checked };
+  if (!payload.name || !payload.code || !payload.value) { Toast.warning('Name, code and value are required.'); return; }
+  try {
+    if (editId) { await API.put('/discounts/'+editId, payload); Toast.success('Discount updated!'); }
+    else { await API.post('/discounts', payload); Toast.success('Discount created!'); }
+    Modal.hide('disc-modal'); loadDiscounts();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function deleteDiscount(id, name) {
+  const ok = await confirmDialog('Delete Discount', `Delete discount "${name}"?`);
+  if (!ok) return;
+  try { await API.delete('/discounts/'+id); Toast.success('Discount deleted.'); loadDiscounts(); } catch (err) { Toast.error(err.message); }
+}
+</script>
+</body>
+</html>

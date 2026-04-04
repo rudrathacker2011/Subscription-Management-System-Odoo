@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Users — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">User Management</div></header>
+<main class="page-content">
+<div class="page-header-row">
+  <div class="page-header"><h1>Users</h1><p>Manage staff and customer accounts</p></div>
+  <button class="btn btn-primary" onclick="openCreate()" id="create-btn">+ New User</button>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:0">
+    <div class="filter-bar">
+      <div class="filter-search">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search" placeholder="Search users..." oninput="debounceSearch()">
+      </div>
+      <select class="filter-select" id="role-filter" onchange="loadUsers()">
+        <option value="">All Roles</option>
+        <option value="ADMIN">Admin</option>
+        <option value="INTERNAL">Internal Staff</option>
+        <option value="PORTAL">Customer Portal</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Company</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="users-table"><tr><td colspan="7" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+    </table>
+  </div>
+  <div id="pagination" style="padding:16px 22px"></div>
+</div>
+
+</main>
+</div>
+</div>
+
+<div id="user-modal" class="modal-overlay">
+<div class="modal">
+  <div class="modal-header"><div class="modal-title" id="modal-title">New User</div><button class="modal-close">✕</button></div>
+  <div class="modal-body">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input type="text" id="u-name" class="form-input" placeholder="John Doe"></div>
+      <div class="form-group"><label class="form-label">Email <span class="required">*</span></label><input type="email" id="u-email" class="form-input" placeholder="user@example.com"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Role <span class="required">*</span></label>
+        <select id="u-role" class="form-select"><option value="PORTAL">Customer Portal</option><option value="INTERNAL">Internal Staff</option><option value="ADMIN">Admin</option></select></div>
+      <div class="form-group"><label class="form-label">Phone</label><input type="tel" id="u-phone" class="form-input" placeholder="+91-9876543210"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Company Name</label><input type="text" id="u-company" class="form-input" placeholder="Acme Corp"></div>
+    <div class="form-group" id="pw-group"><label class="form-label">Password <span class="required">*</span></label>
+      <input type="password" id="u-password" class="form-input" placeholder="Minimum 8 characters"></div>
+    <label class="form-check"><input type="checkbox" id="u-active" checked><span class="form-check-label">Account Active</span></label>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="Modal.hide('user-modal')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+  </div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
+let currentPage=1, editId=null, searchTimeout;
+const currentUser = Auth.getUser();
+
+document.addEventListener('DOMContentLoaded', loadUsers);
+
+function debounceSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentPage=1; loadUsers(); }, 350); }
+
+async function loadUsers(page = 1) {
+  currentPage = page;
+  const search = document.getElementById('search').value;
+  const role = document.getElementById('role-filter').value;
+  const params = new URLSearchParams({ page, limit: 20, ...(role && { role }), ...(search && { search }) });
+
+  const tbody = document.getElementById('users-table');
+  tbody.innerHTML = '<tr><td colspan="7" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr>';
+
+  try {
+    const res = await API.get('/users?' + params);
+    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="7" class="table-empty"><div class="empty-icon">👥</div><p>No users found</p></td></tr>'; return; }
+
+    const roleColors = { ADMIN: 'badge-active', INTERNAL: 'badge-confirmed', PORTAL: 'badge-quotation' };
+    tbody.innerHTML = res.data.map(u => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#6366F1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;flex-shrink:0">${fmt.initials(u.name)}</div>
+          <div><div style="font-weight:600">${u.name}</div>${u.id === currentUser.id ? '<div style="font-size:11px;color:var(--primary)">● You</div>' : ''}</div>
+        </div></td>
+        <td>${u.email}</td>
+        <td><span class="badge ${roleColors[u.role]||''}"> ${u.role}</span></td>
+        <td>${u.companyName||'—'}</td>
+        <td style="font-size:13px">${u.phone||'—'}</td>
+        <td>${fmt.badge(u.isActive ? 'ACTIVE' : 'CLOSED')}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-xs" onclick="openEdit(${JSON.stringify(u).replace(/"/g,'&quot;')})">Edit</button>
+          ${Auth.isAdmin() && u.id !== currentUser.id ? `<button class="btn btn-outline btn-xs" onclick="impersonate('${u.id}', '${u.name.replace(/'/g,"\\'")}')">Login As</button>` : ''}
+          ${Auth.isAdmin() && u.id !== currentUser.id ? `<button class="btn btn-danger btn-xs" onclick="deleteUser('${u.id}','${u.name.replace(/'/g,"\\'")}')">Delete</button>` : ''}
+        </div></td>
+      </tr>`).join('');
+    renderPagination(document.getElementById('pagination'), res.pagination, loadUsers);
+  } catch (err) { Toast.error(err.message); }
+}
+
+function openCreate() { editId=null; document.getElementById('modal-title').textContent='New User'; ['u-name','u-email','u-phone','u-company','u-password'].forEach(id=>document.getElementById(id).value=''); document.getElementById('u-role').value='PORTAL'; document.getElementById('u-active').checked=true; document.getElementById('pw-group').style.display=''; Modal.show('user-modal'); }
+function openEdit(u) { editId=u.id; document.getElementById('modal-title').textContent='Edit User'; document.getElementById('u-name').value=u.name; document.getElementById('u-email').value=u.email; document.getElementById('u-role').value=u.role; document.getElementById('u-phone').value=u.phone||''; document.getElementById('u-company').value=u.companyName||''; document.getElementById('u-password').value=''; document.getElementById('u-active').checked=u.isActive; document.getElementById('pw-group').style.display='none'; Modal.show('user-modal'); }
+
+async function saveUser() {
+  const payload = { name: document.getElementById('u-name').value.trim(), email: document.getElementById('u-email').value.trim(), role: document.getElementById('u-role').value, phone: document.getElementById('u-phone').value.trim()||null, companyName: document.getElementById('u-company').value.trim()||null, isActive: document.getElementById('u-active').checked };
+  if (!editId) payload.password = document.getElementById('u-password').value;
+  if (!payload.name || !payload.email) { Toast.warning('Name and email are required.'); return; }
+  if (!editId && (!payload.password || payload.password.length < 8)) { Toast.warning('Password must be at least 8 characters.'); return; }
+  try {
+    if (editId) { await API.put('/users/'+editId, payload); Toast.success('User updated!'); }
+    else { await API.post('/users', payload); Toast.success('User created!'); }
+    Modal.hide('user-modal'); loadUsers();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function deleteUser(id, name) {
+  const ok = await confirmDialog('Deactivate User', `Deactivate account for "${name}"?`, 'Deactivate');
+  if (!ok) return;
+  try { await API.delete('/users/'+id); Toast.success('User deactivated.'); loadUsers(); } catch (err) { Toast.error(err.message); }
+}
+
+async function impersonate(id, name) {
+  const ok = await confirmDialog('Login As', `Are you sure you want to log in as "${name}"? You will be logged out of your Admin session.`, 'Login As');
+  if (!ok) return;
+  try {
+    const res = await fetch('/api/auth/impersonate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + Auth.getToken() },
+      body: JSON.stringify({ userId: id })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    Auth.setToken(data.accessToken);
+    Auth.setUser(data.user);
+    window.location.href = '/dashboard.html';
+  } catch (err) { Toast.error('Impersonation failed: ' + err.message); }
+}
+</script>
+</body>
+</html>

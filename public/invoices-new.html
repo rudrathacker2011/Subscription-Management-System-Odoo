@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Subscription — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.section-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.line-item-row { display: grid; grid-template-columns: 2fr 100px 150px 150px 40px; gap: 12px; margin-bottom: 8px; align-items: start; }
+.totals-box { background: var(--surface-2); border-radius: var(--radius); padding: 16px; text-align: right; width: 300px; margin-left: auto; margin-top: 16px; }
+.totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+.totals-row.grand-total { border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 800; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/invoices.html" class="btn btn-ghost btn-sm">← Back</a>
+    <div class="topbar-title">Create Manual Invoice</div>
+  </div>
+</header>
+<main class="page-content">
+  <div class="detail-grid">
+    <div>
+      <div class="card mb-2">
+        <div class="card-body">
+          <div class="section-title">1. Customer Details</div>
+          <div class="form-group"><label class="form-label">Customer <span class="required">*</span></label>
+            <select id="f-customer" class="form-select"></select>
+          </div>
+          <div class="form-group"><label class="form-label">Payment Terms</label>
+            <select id="f-terms" class="form-select">
+              <option value="NET_15">Net 15</option><option value="NET_30" selected>Net 30</option><option value="NET_60">Net 60</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Notes</label>
+            <textarea id="f-notes" class="form-textarea" placeholder="Optional notes for the customer"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-2">
+        <div class="card-body">
+          <div class="section-title">2. Line Items</div>
+          <div class="line-item-header" style="display:grid; grid-template-columns: 2fr 100px 150px 150px 40px; gap: 12px; margin-bottom: 8px; font-weight:700;font-size:12px;color:var(--text-secondary)">
+            <div>Product / Description</div><div>Qty</div><div>Unit Price (₹)</div><div style="text-align:right">Total (₹)</div><div></div>
+          </div>
+          <div id="line-items-container"></div>
+          <button class="btn btn-outline btn-sm mt-1" onclick="addLineItem()">+ Add Item</button>
+        </div>
+      </div>
+    </div>
+    
+    <div>
+      <div class="card mb-2" style="position:sticky;top:80px">
+        <div class="card-header"><div class="card-title">Order Summary</div></div>
+        <div class="card-body" style="background:var(--surface-2)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px"><span>Subtotal</span><span class="text-mono" id="summ-sub">₹0.00</span></div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:14px"><span>Tax</span><span class="text-mono">₹0.00</span></div>
+          <div style="display:flex;justify-content:space-between;border-top:2px solid var(--border);padding-top:12px;font-size:18px;font-weight:800"><span>Grand Total</span><span class="text-mono" id="summ-total">₹0.00</span></div>
+          
+          <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-primary w-full" style="justify-content:center;padding:12px" onclick="saveInvoice()">Save Invoice</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
+
+let db = { customers: [], products: [] };
+let itemCount = 0;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const [custRes, prodRes] = await Promise.all([
+      API.get('/users?role=PORTAL&limit=100'), API.get('/products')
+    ]);
+    db.customers = custRes.data; db.products = prodRes.data;
+
+    document.getElementById('f-customer').innerHTML = '<option value="">Select customer...</option>' + db.customers.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
+    
+    addLineItem();
+  } catch (err) { Toast.error(err.message); }
+});
+
+function addLineItem(prodId = '', qty = 1, price = null) {
+  const container = document.getElementById('line-items-container');
+  const rowId = 'li-' + (++itemCount);
+  const row = document.createElement('div');
+  row.className = 'line-item-row';
+  row.id = rowId;
+  row.style.cssText = 'display:grid; grid-template-columns: 2fr 100px 150px 150px 40px; gap: 12px; margin-bottom: 12px; align-items:start';
+  
+  const pOpts = '<option value="">Select product...</option>' + db.products.map(p => `<option value="${p.id}" data-price="${p.basePrice}" ${p.id===prodId?'selected':''}>${p.name}</option>`).join('');
+  
+  row.innerHTML = `
+    <div>
+      <select class="form-select item-prod mb-1" onchange="prodChanged(this)">${pOpts}</select>
+      <input type="text" class="form-input item-desc" placeholder="Custom description (optional)">
+    </div>
+    <input type="number" class="form-input text-center item-qty" value="${qty}" min="1" oninput="updateTotals()">
+    <input type="number" class="form-input text-mono item-price" value="${price!==null?price:''}" placeholder="0.00" step="0.01" oninput="updateTotals()">
+    <div class="item-total text-mono fw-semibold" style="text-align:right;padding-top:10px">₹0.00</div>
+    <button class="btn btn-ghost btn-icon text-danger" onclick="document.getElementById('${rowId}').remove();updateTotals()">✕</button>
+  `;
+  container.appendChild(row);
+  if (prodId && price === null) prodChanged(row.querySelector('.item-prod'));
+  updateTotals();
+}
+
+function prodChanged(selectEl) {
+  const opt = selectEl.options[selectEl.selectedIndex];
+  const priceInput = selectEl.closest('.line-item-row').querySelector('.item-price');
+  if (opt.value) priceInput.value = parseFloat(opt.dataset.price).toFixed(2);
+  updateTotals();
+}
+
+function updateTotals() {
+  let subtotal = 0;
+  document.querySelectorAll('.line-item-row').forEach(row => {
+    const qty = parseInt(row.querySelector('.item-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+    const lineTot = qty * price;
+    subtotal += lineTot;
+    row.querySelector('.item-total').textContent = fmt.currency(lineTot);
+  });
+  document.getElementById('summ-sub').textContent = fmt.currency(subtotal);
+  document.getElementById('summ-total').textContent = fmt.currency(subtotal);
+}
+
+async function saveInvoice() {
+  const payload = {
+    customerId: document.getElementById('f-customer').value,
+    paymentTerms: document.getElementById('f-terms').value,
+    notes: document.getElementById('f-notes').value.trim() || null,
+    lineItems: []
+  };
+
+  if (!payload.customerId) return Toast.warning('Please select a customer.');
+
+  document.querySelectorAll('.line-item-row').forEach(row => {
+    const pId = row.querySelector('.item-prod').value;
+    const desc = row.querySelector('.item-desc').value.trim();
+    if (pId || desc) {
+      payload.lineItems.push({
+        productId: pId || null,
+        description: desc || null,
+        quantity: parseInt(row.querySelector('.item-qty').value) || 1,
+        unitPrice: parseFloat(row.querySelector('.item-price').value) || 0
+      });
+    }
+  });
+
+  if (payload.lineItems.length === 0) return Toast.warning('Add at least one item.');
+
+  try {
+    const res = await API.post('/invoices', payload);
+    Toast.success('Manual Invoice created!');
+    setTimeout(() => location.href = '/invoices-detail.html?id=' + res.data.id, 800);
+  } catch (err) { Toast.error(err.message); }
+}
+</script>
+</body>
+</html>

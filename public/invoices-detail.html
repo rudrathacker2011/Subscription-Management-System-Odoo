@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Detail — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+@media print {
+  .sidebar,.topbar,.action-bar,.btn { display:none!important; }
+  .main-content { margin:0!important; }
+  .card { box-shadow:none!important; border:1px solid #ddd!important; }
+  .print-header { display:flex!important; }
+}
+.print-header { display:none; margin-bottom:24px; justify-content:space-between; align-items:flex-start; }
+.invoice-logo { font-size:28px; font-weight:900; color:var(--primary); }
+.invoice-meta { text-align:right; }
+.invoice-meta h2 { font-size:22px; font-weight:800; margin-bottom:4px; }
+.invoice-meta p { font-size:13px; color:var(--text-secondary); }
+.amounts-box { background:var(--surface-2); border-radius:var(--radius); padding:16px; }
+.amount-row { display:flex; justify-content:space-between; padding:6px 0; font-size:14px; }
+.amount-row.total { border-top:2px solid var(--border); margin-top:8px; padding-top:12px; font-size:17px; font-weight:800; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <a href="/invoices.html" class="btn btn-ghost btn-sm">← Back</a>
+    <div class="topbar-title" id="page-title">Invoice Detail</div>
+  </div>
+</header>
+<div class="action-bar" id="action-bar"></div>
+<main class="page-content">
+  <div id="loading" class="loading-center"><div class="loading-spinner"></div></div>
+  <div id="content" style="display:none">
+
+    <!-- Print Header (only visible when printing) -->
+    <div class="print-header">
+      <div><div class="invoice-logo">💼 SubsManager</div><p style="font-size:12px;color:#666;margin-top:4px">Subscription Management Platform</p></div>
+      <div class="invoice-meta"><h2 id="pr-num"></h2><p id="pr-date"></p><p id="pr-due"></p></div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- LEFT -->
+      <div>
+        <div class="card mb-2" style="margin-bottom:20px">
+          <div class="card-header">
+            <div>
+              <div class="card-title" id="inv-number"></div>
+              <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px" id="inv-sub"></div>
+            </div>
+            <div id="inv-status-badge"></div>
+          </div>
+          <div class="card-body">
+            <div class="form-row" style="margin-bottom:0">
+              <div class="detail-section">
+                <div class="detail-section-title">Bill To</div>
+                <div style="font-weight:700;font-size:15px;margin-bottom:4px" id="d-customer-name"></div>
+                <div style="font-size:13px;color:var(--text-secondary)" id="d-customer-email"></div>
+                <div style="font-size:13px;color:var(--text-secondary)" id="d-customer-company"></div>
+                <div style="font-size:13px;color:var(--text-secondary);margin-top:4px" id="d-customer-address"></div>
+              </div>
+              <div class="detail-section">
+                <div class="detail-section-title">Invoice Details</div>
+                <div class="detail-row" style="padding:7px 0"><span class="detail-label">Invoice Date</span><span class="detail-value" id="d-inv-date"></span></div>
+                <div class="detail-row" style="padding:7px 0"><span class="detail-label">Due Date</span><span class="detail-value" id="d-due-date"></span></div>
+                <div class="detail-row" style="padding:7px 0"><span class="detail-label">Type</span><span class="detail-value" id="d-type"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="card mb-2" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">Line Items</div></div>
+          <div class="table-wrap">
+            <table class="line-items-table">
+              <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+              <tbody id="line-items-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Payment History -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">Payment History</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Payment #</th><th>Method</th><th>Date</th><th>Amount</th><th>Reference</th></tr></thead>
+              <tbody id="payments-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Amounts + Notes -->
+      <div>
+        <div class="card mb-2" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">Amounts</div></div>
+          <div class="card-body">
+            <div class="amounts-box">
+              <div class="amount-row"><span>Subtotal</span><span class="text-mono" id="a-subtotal"></span></div>
+              <div class="amount-row"><span>Tax</span><span class="text-mono" id="a-tax"></span></div>
+              <div class="amount-row"><span>Discount</span><span class="text-mono text-success" id="a-discount"></span></div>
+              <div class="amount-row total"><span>Total</span><span class="text-mono" id="a-total"></span></div>
+              <div class="amount-row" style="margin-top:8px"><span>Amount Paid</span><span class="text-mono text-success" id="a-paid"></span></div>
+              <div class="amount-row" style="font-weight:700;color:var(--danger)"><span>Amount Due</span><span class="text-mono" id="a-due"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb-2" style="margin-bottom:20px" id="notes-card" style="display:none">
+          <div class="card-header"><div class="card-title">Notes</div></div>
+          <div class="card-body"><p id="inv-notes" style="font-size:13.5px;color:var(--text-secondary);line-height:1.7"></p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+</div>
+
+<!-- Payment Modal -->
+<div id="payment-modal" class="modal-overlay">
+<div class="modal" style="max-width:440px">
+  <div class="modal-header"><div class="modal-title">Record Payment</div><button class="modal-close">✕</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">Payment Amount (₹) <span class="required">*</span></label><input type="number" id="pay-amount" class="form-input" placeholder="0.00" min="0.01" step="0.01"></div>
+    <div class="form-group"><label class="form-label">Payment Method <span class="required">*</span></label>
+      <select id="pay-method" class="form-select">
+        <option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK_TRANSFER">Bank Transfer</option><option value="UPI">UPI</option><option value="CHEQUE">Cheque</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Reference / Transaction ID</label><input type="text" id="pay-ref" class="form-input" placeholder="Optional"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="pay-notes" class="form-textarea" placeholder="Optional"></textarea></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="Modal.hide('payment-modal')">Cancel</button>
+    <button class="btn btn-primary" onclick="savePayment()">Record Payment</button>
+  </div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth()) throw new Error();
+const urlId = new URLSearchParams(location.search).get('id');
+if (!urlId) { location.href = '/invoices.html'; }
+
+let inv;
+
+async function load() {
+  try {
+    const res = await API.get('/invoices/' + urlId);
+    inv = res.data;
+    renderPage();
+  } catch (err) { Toast.error(err.message); }
+}
+
+function renderPage() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = '';
+
+  document.getElementById('page-title').textContent = inv.invoiceNumber;
+  document.getElementById('inv-number').textContent = inv.invoiceNumber;
+  document.getElementById('pr-num').textContent = inv.invoiceNumber;
+  document.getElementById('pr-date').textContent = 'Date: ' + fmt.date(inv.invoiceDate);
+  document.getElementById('pr-due').textContent = 'Due: ' + fmt.date(inv.dueDate);
+  document.getElementById('inv-sub').textContent = inv.subscription ? `Subscription: ${inv.subscription.subscriptionNumber}` : 'Manual Invoice';
+  document.getElementById('inv-status-badge').innerHTML = fmt.badge(inv.status);
+
+  // Customer
+  document.getElementById('d-customer-name').textContent = inv.customer?.name || '—';
+  document.getElementById('d-customer-email').textContent = inv.customer?.email || '';
+  document.getElementById('d-customer-company').textContent = inv.customer?.companyName || '';
+  document.getElementById('d-customer-address').textContent = inv.customer?.billingAddress || '';
+  document.getElementById('d-inv-date').textContent = fmt.date(inv.invoiceDate);
+
+  const isOverdue = inv.dueDate && new Date(inv.dueDate) < new Date() && !['PAID','CANCELLED'].includes(inv.status);
+  const dueDateEl = document.getElementById('d-due-date');
+  dueDateEl.textContent = fmt.date(inv.dueDate);
+  if (isOverdue) dueDateEl.className = 'detail-value text-danger fw-bold';
+
+  document.getElementById('d-type').innerHTML = inv.isManual ? '<span class="tag">Manual</span>' : '<span class="tag" style="background:var(--info-light);color:var(--info)">Auto</span>';
+
+  // Line Items
+  const lineItems = inv.lineItems || [];
+  document.getElementById('line-items-body').innerHTML = lineItems.length
+    ? lineItems.map(li => `<tr>
+        <td><div style="font-weight:600">${li.description || li.product?.name || '—'}</div></td>
+        <td>${li.quantity}</td>
+        <td class="text-mono">${fmt.currency(li.unitPrice)}</td>
+        <td class="text-mono fw-semibold">${fmt.currency(li.lineTotal)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" class="table-empty"><p>No line items</p></td></tr>';
+
+  // Amounts
+  document.getElementById('a-subtotal').textContent = fmt.currency(inv.subtotal);
+  document.getElementById('a-tax').textContent = fmt.currency(inv.taxAmount);
+  document.getElementById('a-discount').textContent = inv.discountAmount > 0 ? `- ${fmt.currency(inv.discountAmount)}` : '₹0.00';
+  document.getElementById('a-total').textContent = fmt.currency(inv.total);
+  document.getElementById('a-paid').textContent = fmt.currency(inv.amountPaid);
+  document.getElementById('a-due').textContent = fmt.currency(inv.amountDue);
+
+  // Notes
+  if (inv.notes) {
+    document.getElementById('notes-card').style.display = '';
+    document.getElementById('inv-notes').textContent = inv.notes;
+  }
+
+  // Payments
+  const payments = inv.payments || [];
+  document.getElementById('payments-body').innerHTML = payments.length
+    ? payments.map(p => `<tr>
+        <td class="text-mono">${p.paymentNumber}</td>
+        <td><span class="tag">${p.paymentMethod}</span></td>
+        <td style="font-size:12.5px">${fmt.date(p.paymentDate)}</td>
+        <td class="text-mono text-success fw-semibold">${fmt.currency(p.amount)}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${p.referenceNumber || '—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="table-empty"><p>No payments yet</p></td></tr>';
+
+  // Actions
+  renderActions();
+}
+
+function renderActions() {
+  const bar = document.getElementById('action-bar');
+  let btns = `<button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ Print / PDF</button>`;
+  if (Auth.isInternal()) {
+    if (inv.status === 'DRAFT') btns += `<button class="btn btn-primary btn-sm" onclick="doAction('confirm')">✅ Confirm</button>`;
+    if (inv.status === 'CONFIRMED') {
+      btns += `<button class="btn btn-success btn-sm" onclick="Modal.show('payment-modal');document.getElementById('pay-amount').value=${inv.amountDue.toFixed(2)}">💳 Record Payment</button>`;
+      btns += `<button class="btn btn-outline btn-sm" onclick="doAction('send-email')">📧 Send Email</button>`;
+      btns += `<button class="btn btn-danger btn-sm" onclick="doAction('cancel')">✕ Cancel</button>`;
+    }
+  }
+  bar.innerHTML = btns;
+}
+
+async function doAction(action) {
+  try {
+    await API.post(`/invoices/${urlId}/${action}`);
+    Toast.success(`Invoice ${action.replace('-',' ')} successful!`);
+    load();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function savePayment() {
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  const paymentMethod = document.getElementById('pay-method').value;
+  const referenceNumber = document.getElementById('pay-ref').value.trim();
+  const notes = document.getElementById('pay-notes').value.trim();
+  if (!amount || amount <= 0) { Toast.warning('Enter a valid amount.'); return; }
+  try {
+    await API.post('/payments', { invoiceId: urlId, amount, paymentMethod, referenceNumber, notes });
+    Toast.success('Payment recorded successfully!');
+    Modal.hide('payment-modal');
+    ['pay-amount','pay-ref','pay-notes'].forEach(id => document.getElementById(id).value = '');
+    load();
+  } catch (err) { Toast.error(err.message); }
+}
+
+load();
+</script>
+</body>
+</html>

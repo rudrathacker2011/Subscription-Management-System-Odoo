@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reports — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">Reports & Analytics</div></header>
+<main class="page-content">
+<div class="page-header"><h1>Reports</h1><p>Business intelligence and financial analytics</p></div>
+
+<!-- Tab Navigation -->
+<div style="display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid var(--border);padding-bottom:0">
+  <button class="btn btn-ghost" id="tab-revenue" onclick="switchTab('revenue')" style="border-radius:var(--radius) var(--radius) 0 0;border-bottom:3px solid var(--primary);color:var(--primary)">Revenue</button>
+  <button class="btn btn-ghost" id="tab-subscriptions" onclick="switchTab('subscriptions')" style="border-radius:var(--radius) var(--radius) 0 0">Subscriptions</button>
+  <button class="btn btn-ghost" id="tab-payments" onclick="switchTab('payments')" style="border-radius:var(--radius) var(--radius) 0 0">Payments</button>
+  <button class="btn btn-ghost" id="tab-overdue" onclick="switchTab('overdue')" style="border-radius:var(--radius) var(--radius) 0 0">Overdue</button>
+  <button class="btn btn-ghost" id="tab-customers" onclick="switchTab('customers')" style="border-radius:var(--radius) var(--radius) 0 0">Customers</button>
+</div>
+
+<!-- Revenue Tab -->
+<div id="section-revenue">
+  <div class="kpi-grid mb-2" style="margin-bottom:20px" id="rev-kpis"></div>
+  <div class="chart-grid mb-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Revenue by Month</div></div>
+      <div class="card-body"><div class="chart-wrapper"><canvas id="rev-chart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Payment Methods</div></div>
+      <div class="card-body"><div class="chart-wrapper"><canvas id="method-chart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Subscriptions Tab -->
+<div id="section-subscriptions" style="display:none">
+  <div class="chart-grid mb-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Status Distribution</div></div>
+      <div class="card-body"><div class="chart-wrapper"><canvas id="sub-status-chart"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">By Plan</div></div>
+      <div class="card-body"><div class="chart-wrapper"><canvas id="by-plan-chart"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">All Subscriptions</div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Sub #</th><th>Customer</th><th>Plan</th><th>Status</th><th>Start</th></tr></thead>
+      <tbody id="sub-report-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Payments Tab -->
+<div id="section-payments" style="display:none">
+  <div class="kpi-grid mb-2" style="margin-bottom:20px" id="pay-kpis"></div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Payment Transactions</div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Payment #</th><th>Invoice</th><th>Customer</th><th>Method</th><th>Date</th><th>Amount</th></tr></thead>
+      <tbody id="pay-report-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Overdue Tab -->
+<div id="section-overdue" style="display:none">
+  <div class="kpi-grid mb-2" style="margin-bottom:20px" id="aging-kpis"></div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Overdue Invoices</div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Invoice #</th><th>Customer</th><th>Due Date</th><th>Days Overdue</th><th>Amount Due</th></tr></thead>
+      <tbody id="overdue-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- Customers Tab -->
+<div id="section-customers" style="display:none">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Top Customers by Revenue</div></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Customer</th><th>Company</th><th>Subscriptions</th><th>Total Revenue</th></tr></thead>
+      <tbody id="cust-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
+
+let currentTab = 'revenue';
+let revChart, methodChart, subStatusChart, byPlanChart;
+
+function switchTab(tab) {
+  ['revenue','subscriptions','payments','overdue','customers'].forEach(t => {
+    document.getElementById(`section-${t}`).style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById(`tab-${t}`);
+    btn.style.borderBottom = t === tab ? '3px solid var(--primary)' : 'none';
+    btn.style.color = t === tab ? 'var(--primary)' : '';
+  });
+  currentTab = tab;
+  if (tab === 'revenue') loadRevenue();
+  else if (tab === 'subscriptions') loadSubReport();
+  else if (tab === 'payments') loadPayReport();
+  else if (tab === 'overdue') loadOverdue();
+  else if (tab === 'customers') loadCustomers();
+}
+
+async function loadRevenue() {
+  try {
+    const [rev, pay] = await Promise.all([API.get('/reports/revenue'), API.get('/reports/payments')]);
+    document.getElementById('rev-kpis').innerHTML = `
+      <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(rev.data.total)}</div><div class="kpi-label">Total Revenue</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon blue">📊</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(pay.data.totalInvoiced)}</div><div class="kpi-label">Total Invoiced</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon purple">✅</div><div class="kpi-info"><div class="kpi-value">${pay.data.collectionRate}%</div><div class="kpi-label">Collection Rate</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon yellow">📝</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(pay.data.totalInvoiced - pay.data.totalPaid)}</div><div class="kpi-label">Outstanding</div></div></div>`;
+
+    const byMonth = rev.data.byMonth;
+    if (revChart) revChart.destroy();
+    revChart = new Chart(document.getElementById('rev-chart').getContext('2d'), {
+      type: 'line',
+      data: { labels: byMonth.map(m => m.month), datasets: [{ label: 'Revenue', data: byMonth.map(m => m.revenue), borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#3B82F6' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F1F5F9' }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }, x: { grid: { display: false } } } }
+    });
+
+    const methods = pay.data.byMethod;
+    if (methodChart) methodChart.destroy();
+    methodChart = new Chart(document.getElementById('method-chart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: methods.map(m => m.method), datasets: [{ data: methods.map(m => m.total), backgroundColor: ['#3B82F6','#10B981','#F59E0B','#6366F1','#EF4444'], borderWidth: 3, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 } } } }, cutout: '55%' }
+    });
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function loadSubReport() {
+  try {
+    const res = await API.get('/reports/subscriptions');
+    const { subscriptions = [], byStatus = [], byPlan = [] } = res.data;
+
+    if (subStatusChart) subStatusChart.destroy();
+    subStatusChart = new Chart(document.getElementById('sub-status-chart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: byStatus.map(s => s.status), datasets: [{ data: byStatus.map(s => s.count), backgroundColor: byStatus.map(s => STATUS_COLORS[s.status]), borderWidth: 3, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '55%' }
+    });
+
+    if (byPlanChart) byPlanChart.destroy();
+    byPlanChart = new Chart(document.getElementById('by-plan-chart').getContext('2d'), {
+      type: 'bar',
+      data: { labels: byPlan.map(p => p.plan), datasets: [{ data: byPlan.map(p => p.count), backgroundColor: 'rgba(99,102,241,0.8)', borderRadius: 6 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } }
+    });
+
+    document.getElementById('sub-report-table').innerHTML = subscriptions.slice(0, 50).map(s => `
+      <tr><td><a href="/subscriptions-detail.html?id=${s.id}" class="text-mono">${s.subscriptionNumber}</a></td>
+      <td>${s.customer?.name || '—'}</td><td>${s.plan?.name || '—'}</td>
+      <td>${fmt.badge(s.status)}</td><td style="font-size:12.5px">${fmt.date(s.startDate)}</td></tr>`).join('') || '<tr><td colspan="5" class="table-empty"><p>No data</p></td></tr>';
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function loadPayReport() {
+  try {
+    const res = await API.get('/reports/payments');
+    const { byMethod = [], totalInvoiced, totalPaid, collectionRate } = res.data;
+    document.getElementById('pay-kpis').innerHTML = `
+      <div class="kpi-card"><div class="kpi-icon green">💳</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(totalPaid)}</div><div class="kpi-label">Total Collected</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon blue">📊</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(totalInvoiced)}</div><div class="kpi-label">Total Invoiced</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon purple">%</div><div class="kpi-info"><div class="kpi-value">${collectionRate}%</div><div class="kpi-label">Collection Rate</div></div></div>`;
+
+    const payRes = await API.get('/payments?limit=50');
+    document.getElementById('pay-report-table').innerHTML = payRes.data.map(p => `
+      <tr><td class="text-mono">${p.paymentNumber}</td><td class="text-mono">${p.invoice?.invoiceNumber || '—'}</td>
+      <td>${p.customer?.name || '—'}</td><td><span class="tag">${p.paymentMethod}</span></td>
+      <td style="font-size:12.5px">${fmt.date(p.paymentDate)}</td>
+      <td class="text-mono fw-semibold text-success">${fmt.currency(p.amount)}</td></tr>`).join('') || '<tr><td colspan="6" class="table-empty"><p>No payments</p></td></tr>';
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function loadOverdue() {
+  try {
+    const res = await API.get('/reports/overdue');
+    const { overdue = [], aging = {} } = res.data;
+    const totalOverdue = overdue.reduce((s, i) => s + i.amountDue, 0);
+
+    document.getElementById('aging-kpis').innerHTML = `
+      <div class="kpi-card"><div class="kpi-icon yellow">0-30</div><div class="kpi-info"><div class="kpi-value">${aging['0-30']}</div><div class="kpi-label">0-30 Days Overdue</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon yellow">31-60</div><div class="kpi-info"><div class="kpi-value">${aging['31-60']}</div><div class="kpi-label">31-60 Days</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon red">61-90</div><div class="kpi-info"><div class="kpi-value">${aging['61-90']}</div><div class="kpi-label">61-90 Days</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon red">90+</div><div class="kpi-info"><div class="kpi-value">${aging['90+']}</div><div class="kpi-label">90+ Days</div></div></div>`;
+
+    const now = new Date();
+    document.getElementById('overdue-table').innerHTML = overdue.map(inv => {
+      const days = Math.floor((now - new Date(inv.dueDate)) / (1000 * 60 * 60 * 24));
+      return `<tr>
+        <td><a href="/invoices-detail.html?id=${inv.id}" class="text-mono">${inv.invoiceNumber}</a></td>
+        <td>${inv.customer?.name || '—'}</td>
+        <td class="text-danger">${fmt.date(inv.dueDate)}</td>
+        <td><span class="badge ${days > 90 ? 'badge-cancelled' : days > 60 ? 'badge-quotation' : 'badge-draft'}">${days} days</span></td>
+        <td class="text-mono text-danger fw-semibold">${fmt.currency(inv.amountDue)}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" class="table-empty"><div class="empty-icon">✅</div><p>No overdue invoices!</p></td></tr>';
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function loadCustomers() {
+  try {
+    const res = await API.get('/reports/customers/top');
+    document.getElementById('cust-table').innerHTML = res.data.map((c, i) => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#6366F1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white">${fmt.initials(c.name)}</div>
+          <div><div style="font-weight:600">${c.name}</div><div style="font-size:12px;color:var(--text-muted)">${c.email}</div></div>
+        </div></td>
+        <td>${c.companyName || '—'}</td>
+        <td><span class="badge badge-active">${c.subscriptionCount}</span></td>
+        <td class="text-mono fw-semibold text-success">${fmt.currency(c.totalRevenue)}</td>
+      </tr>`).join('') || '<tr><td colspan="4" class="table-empty"><p>No data</p></td></tr>';
+  } catch (err) { Toast.error(err.message); }
+}
+
+// Load initial tab
+loadRevenue();
+</script>
+</body>
+</html>

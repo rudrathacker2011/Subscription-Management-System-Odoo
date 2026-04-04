@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plans — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">Recurring Plans</div></header>
+<main class="page-content">
+<div class="page-header-row">
+  <div class="page-header"><h1>Recurring Plans</h1><p>Configure subscription billing plans</p></div>
+  <button class="btn btn-primary" onclick="openCreate()">+ New Plan</button>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Plan Name</th><th>Price</th><th>Billing Period</th><th>Min Qty</th><th>Features</th><th>Actions</th></tr></thead>
+      <tbody id="plans-table"><tr><td colspan="6" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+</main>
+</div>
+</div>
+
+<div id="plan-modal" class="modal-overlay">
+<div class="modal">
+  <div class="modal-header"><div class="modal-title" id="modal-title">New Plan</div><button class="modal-close">✕</button></div>
+  <div class="modal-body">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Plan Name <span class="required">*</span></label><input type="text" id="pl-name" class="form-input" placeholder="e.g., Professional Monthly"></div>
+      <div class="form-group"><label class="form-label">Price (₹) <span class="required">*</span></label><input type="number" id="pl-price" class="form-input" placeholder="0.00" min="0" step="0.01"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Billing Period <span class="required">*</span></label>
+        <select id="pl-period" class="form-select"><option value="DAILY">Daily</option><option value="WEEKLY">Weekly</option><option value="MONTHLY" selected>Monthly</option><option value="YEARLY">Yearly</option></select></div>
+      <div class="form-group"><label class="form-label">Min Quantity</label><input type="number" id="pl-min-qty" class="form-input" value="1" min="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start Date</label><input type="date" id="pl-start" class="form-input"></div>
+      <div class="form-group"><label class="form-label">End Date</label><input type="date" id="pl-end" class="form-input"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="pl-desc" class="form-textarea" placeholder="Plan description..."></textarea></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <label class="form-check"><input type="checkbox" id="pl-pausable" checked><span class="form-check-label">Pausable</span></label>
+      <label class="form-check"><input type="checkbox" id="pl-closable" checked><span class="form-check-label">Closable</span></label>
+      <label class="form-check"><input type="checkbox" id="pl-renewable" checked><span class="form-check-label">Renewable</span></label>
+      <label class="form-check"><input type="checkbox" id="pl-autoclose"><span class="form-check-label">Auto-Close on Expiry</span></label>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="Modal.hide('plan-modal')">Cancel</button>
+    <button class="btn btn-primary" onclick="savePlan()">Save Plan</button>
+  </div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
+let editId = null;
+
+document.addEventListener('DOMContentLoaded', loadPlans);
+
+async function loadPlans() {
+  const tbody = document.getElementById('plans-table');
+  try {
+    const res = await API.get('/plans');
+    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="6" class="table-empty"><div class="empty-icon">📋</div><p>No plans yet</p></td></tr>'; return; }
+    tbody.innerHTML = res.data.map(p => `
+      <tr>
+        <td><div style="font-weight:700">${p.name}</div><div style="font-size:12px;color:var(--text-muted)">${p.description || ''}</div></td>
+        <td class="text-mono fw-semibold">${fmt.currency(p.price)}<div style="font-size:11px;color:var(--text-muted)">per ${p.billingPeriod.toLowerCase()}</div></td>
+        <td><span class="tag">${p.billingPeriod}</span></td>
+        <td>${p.minQuantity}</td>
+        <td style="font-size:12px">
+          ${p.pausable ? '⏸ Pausable &nbsp;' : ''}${p.closable ? '✕ Closable &nbsp;' : ''}${p.renewable ? '🔄 Renewable' : ''}
+        </td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-xs" onclick="openEdit(${JSON.stringify(p).replace(/"/g,'&quot;')})">Edit</button>
+          ${Auth.isAdmin() ? `<button class="btn btn-danger btn-xs" onclick="deletePlan('${p.id}','${p.name.replace(/'/g,"\\'")}')">Delete</button>` : ''}
+        </div></td>
+      </tr>`).join('');
+  } catch (err) { Toast.error(err.message); tbody.innerHTML = '<tr><td colspan="6" class="table-empty"><p>Failed to load</p></td></tr>'; }
+}
+
+function openCreate() { editId = null; document.getElementById('modal-title').textContent = 'New Plan'; ['pl-name','pl-desc'].forEach(id=>document.getElementById(id).value=''); document.getElementById('pl-price').value=''; document.getElementById('pl-period').value='MONTHLY'; document.getElementById('pl-min-qty').value=1; ['pl-start','pl-end'].forEach(id=>document.getElementById(id).value=''); ['pl-pausable','pl-closable','pl-renewable'].forEach(id=>document.getElementById(id).checked=true); document.getElementById('pl-autoclose').checked=false; Modal.show('plan-modal'); }
+
+function openEdit(p) { editId = p.id; document.getElementById('modal-title').textContent = 'Edit Plan'; document.getElementById('pl-name').value = p.name; document.getElementById('pl-price').value = p.price; document.getElementById('pl-period').value = p.billingPeriod; document.getElementById('pl-min-qty').value = p.minQuantity; document.getElementById('pl-start').value = p.startDate ? p.startDate.split('T')[0] : ''; document.getElementById('pl-end').value = p.endDate ? p.endDate.split('T')[0] : ''; document.getElementById('pl-desc').value = p.description || ''; document.getElementById('pl-pausable').checked = p.pausable; document.getElementById('pl-closable').checked = p.closable; document.getElementById('pl-renewable').checked = p.renewable; document.getElementById('pl-autoclose').checked = p.autoClose; Modal.show('plan-modal'); }
+
+async function savePlan() {
+  const payload = { name: document.getElementById('pl-name').value.trim(), price: parseFloat(document.getElementById('pl-price').value), billingPeriod: document.getElementById('pl-period').value, minQuantity: parseInt(document.getElementById('pl-min-qty').value)||1, startDate: document.getElementById('pl-start').value||null, endDate: document.getElementById('pl-end').value||null, description: document.getElementById('pl-desc').value.trim(), pausable: document.getElementById('pl-pausable').checked, closable: document.getElementById('pl-closable').checked, renewable: document.getElementById('pl-renewable').checked, autoClose: document.getElementById('pl-autoclose').checked };
+  if (!payload.name || !payload.price || !payload.billingPeriod) { Toast.warning('Name, price, and billing period are required.'); return; }
+  try {
+    if (editId) { await API.put('/plans/'+editId, payload); Toast.success('Plan updated!'); }
+    else { await API.post('/plans', payload); Toast.success('Plan created!'); }
+    Modal.hide('plan-modal'); loadPlans();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function deletePlan(id, name) {
+  const ok = await confirmDialog('Delete Plan', `Delete plan "${name}"? This cannot be undone.`);
+  if (!ok) return;
+  try { await API.delete('/plans/'+id); Toast.success('Plan deleted.'); loadPlans(); } catch (err) { Toast.error(err.message); }
+}
+</script>
+</body>
+</html>

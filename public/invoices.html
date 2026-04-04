@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoices — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">Invoices</div></header>
+<main class="page-content">
+<div class="page-header-row">
+  <div class="page-header"><h1>Invoices</h1><p>Track and manage all billing invoices</p></div>
+  <div style="display:flex;gap:8px">
+    <a href="/invoices-new.html" class="btn btn-primary" id="new-inv-btn" style="display:none">+ Manual Invoice</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:0">
+    <div class="filter-bar">
+      <div class="filter-search">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search" placeholder="Search invoice number..." oninput="debounceSearch()">
+      </div>
+      <select class="filter-select" id="status-filter" onchange="loadInvoices()">
+        <option value="">All Status</option>
+        <option value="DRAFT">Draft</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="PAID">Paid</option>
+        <option value="CANCELLED">Cancelled</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="toggleOverdue()" id="overdue-btn">⚠️ Overdue Only</button>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Customer</th>
+          <th>Date</th>
+          <th>Due Date</th>
+          <th>Total</th>
+          <th>Paid</th>
+          <th>Due</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="inv-table"><tr><td colspan="9" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+    </table>
+  </div>
+  <div id="pagination" style="padding:16px 22px"></div>
+</div>
+
+</main>
+</div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth()) throw new Error();
+let currentPage = 1, searchTimeout, showOverdue = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (Auth.isInternal()) document.getElementById('new-inv-btn').style.display = '';
+  loadInvoices();
+});
+
+function debounceSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentPage=1; loadInvoices(); }, 350); }
+function toggleOverdue() {
+  showOverdue = !showOverdue;
+  const btn = document.getElementById('overdue-btn');
+  btn.className = showOverdue ? 'btn btn-warning btn-sm' : 'btn btn-outline btn-sm';
+  loadInvoices();
+}
+
+async function loadInvoices(page = 1) {
+  currentPage = page;
+  const status = document.getElementById('status-filter').value;
+  const params = new URLSearchParams({ page, limit: 20, ...(status && { status }), ...(showOverdue && { overdue: 'true' }) });
+
+  const tbody = document.getElementById('inv-table');
+  tbody.innerHTML = '<tr><td colspan="9" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr>';
+
+  try {
+    const res = await API.get('/invoices?' + params);
+    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="9" class="table-empty"><div class="empty-icon">📄</div><p>No invoices found</p></td></tr>'; return; }
+
+    const now = new Date();
+    tbody.innerHTML = res.data.map(inv => {
+      const isOverdue = inv.dueDate && new Date(inv.dueDate) < now && !['PAID','CANCELLED'].includes(inv.status);
+      const dueCellStyle = isOverdue ? 'color:var(--danger);font-weight:600' : '';
+      return `<tr ${isOverdue ? 'style="background:rgba(239,68,68,0.04)"' : ''}>
+        <td><a href="/invoices-detail.html?id=${inv.id}" class="text-mono fw-semibold">${inv.invoiceNumber}</a>
+          ${inv.isManual ? '<span class="tag" style="margin-left:4px">Manual</span>' : ''}
+        </td>
+        <td><div style="font-weight:600">${inv.customer?.name || '—'}</div><div style="font-size:12px;color:var(--text-muted)">${inv.customer?.email || ''}</div></td>
+        <td style="font-size:13px">${fmt.date(inv.invoiceDate)}</td>
+        <td style="font-size:13px;${dueCellStyle}">${fmt.date(inv.dueDate)}${isOverdue ? ' ⚠️' : ''}</td>
+        <td class="text-mono fw-semibold">${fmt.currency(inv.total)}</td>
+        <td class="text-mono text-success">${fmt.currency(inv.amountPaid)}</td>
+        <td class="text-mono ${inv.amountDue > 0 ? 'text-danger' : 'text-muted'}">${fmt.currency(inv.amountDue)}</td>
+        <td>${fmt.badge(inv.status)}</td>
+        <td><div style="display:flex;gap:4px">
+          <a href="/invoices-detail.html?id=${inv.id}" class="btn btn-outline btn-xs">View</a>
+          ${Auth.isInternal() && inv.status === 'CONFIRMED' ? `<button class="btn btn-primary btn-xs" onclick="recordPayment('${inv.id}','${inv.invoiceNumber}',${inv.amountDue})">Pay</button>` : ''}
+        </div></td>
+      </tr>`;
+    }).join('');
+
+    renderPagination(document.getElementById('pagination'), res.pagination, loadInvoices);
+  } catch (err) { Toast.error('Failed to load invoices: ' + err.message); }
+}
+
+// Quick payment from list
+let payId, payMax;
+function recordPayment(id, num, maxAmt) {
+  payId = id; payMax = maxAmt;
+  const amt = prompt(`Record payment for ${num}\nAmount Due: ${fmt.currency(maxAmt)}\n\nEnter payment amount:`, maxAmt.toFixed(2));
+  if (!amt) return;
+  const method = prompt('Payment method (CASH/CARD/BANK_TRANSFER/UPI/CHEQUE):', 'CASH');
+  if (!method) return;
+  API.post('/payments', { invoiceId: payId, amount: parseFloat(amt), paymentMethod: method.toUpperCase() })
+    .then(() => { Toast.success('Payment recorded!'); loadInvoices(); })
+    .catch(err => Toast.error(err.message));
+}
+</script>
+</body>
+</html>

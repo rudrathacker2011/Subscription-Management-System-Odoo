@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quotation Templates — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.line-item-row { display: grid; grid-template-columns: 2fr 1fr 40px; gap: 8px; margin-bottom: 8px; align-items: start; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">Quotation Templates</div></header>
+<main class="page-content">
+<div class="page-header-row">
+  <div class="page-header"><h1>Quotation Templates</h1><p>Pre-defined bundles of products and plans</p></div>
+  <button class="btn btn-primary" onclick="openCreate()">+ New Template</button>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Template Name</th><th>Linked Plan</th><th>Validity (Days)</th><th>Products</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="tpl-table"><tr><td colspan="6" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+</main>
+</div>
+</div>
+
+<div id="tpl-modal" class="modal-overlay">
+<div class="modal modal-lg">
+  <div class="modal-header"><div class="modal-title" id="modal-title">New Template</div><button class="modal-close">✕</button></div>
+  <div class="modal-body">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Template Name <span class="required">*</span></label><input type="text" id="t-name" class="form-input" placeholder="e.g., Enterprise Startup Bundle"></div>
+      <div class="form-group"><label class="form-label">Validity (Days)</label><input type="number" id="t-validity" class="form-input" placeholder="30" min="1"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Linked Recurring Plan <span class="required">*</span></label>
+      <select id="t-plan" class="form-select"><option value="">-- Select a Plan --</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="t-desc" class="form-textarea" placeholder="Optional description..."></textarea></div>
+    
+    <div class="form-group mt-1">
+      <label class="form-label">Default Line Items <span class="required">*</span></label>
+      <div id="t-items" style="background:var(--surface-2);padding:16px;border-radius:var(--radius);border:1px solid var(--border)">
+        <div class="line-item-row" style="font-weight:600;font-size:12px;color:var(--text-secondary)">
+          <div>Product</div><div>Default Qty</div><div></div>
+        </div>
+        <div id="t-items-list"></div>
+        <button class="btn btn-outline btn-sm mt-1" onclick="addLineItem()">+ Add Product</button>
+      </div>
+    </div>
+
+    <label class="form-check mt-1"><input type="checkbox" id="t-active" checked><span class="form-check-label">Is Active</span></label>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-outline" onclick="Modal.hide('tpl-modal')">Cancel</button>
+    <button class="btn btn-primary" onclick="saveTemplate()">Save Template</button>
+  </div>
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
+
+let editId = null;
+let allProducts = [];
+let allPlans = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await Promise.all([loadTemplates(), fetchReferences()]);
+});
+
+async function fetchReferences() {
+  try {
+    const [prodRes, planRes] = await Promise.all([API.get('/products'), API.get('/plans')]);
+    allProducts = prodRes.data.filter(p => p.isActive);
+    allPlans = planRes.data;
+    
+    document.getElementById('t-plan').innerHTML = '<option value="">-- Select a Plan --</option>' + 
+      allPlans.map(p => `<option value="${p.id}">${p.name} (${fmt.currency(p.price)}/${p.billingPeriod.toLowerCase()})</option>`).join('');
+  } catch (err) {}
+}
+
+async function loadTemplates() {
+  const tbody = document.getElementById('tpl-table');
+  try {
+    const res = await API.get('/quotation-templates');
+    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="6" class="table-empty"><div class="empty-icon">📝</div><p>No templates found</p></td></tr>'; return; }
+    
+    tbody.innerHTML = res.data.map(t => {
+      const itemsList = t.lineItems.map(li => `<div style="font-size:12px">• ${li.defaultQuantity}x ${li.product.name}</div>`).join('');
+      return `<tr>
+        <td><div style="font-weight:700">${t.name}</div><div style="font-size:12px;color:var(--text-muted)">${t.description||''}</div></td>
+        <td>${t.plan?.name || '—'}</td>
+        <td class="text-mono">${t.validityDays} days</td>
+        <td>${itemsList || '<span class="text-muted">No products</span>'}</td>
+        <td>${fmt.badge(t.isActive ? 'ACTIVE' : 'CLOSED')}</td>
+        <td><div style="display:flex;gap:6px">
+          <button class="btn btn-outline btn-xs" onclick="openEdit(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button>
+          ${Auth.isAdmin() ? `<button class="btn btn-danger btn-xs" onclick="deleteTemplate('${t.id}','${t.name.replace(/'/g,"\\'")}')">Delete</button>` : ''}
+        </div></td>
+      </tr>`;
+    }).join('');
+  } catch (err) { Toast.error(err.message); }
+}
+
+function renderLineItems(items = []) {
+  const list = document.getElementById('t-items-list');
+  list.innerHTML = '';
+  if (items.length === 0) addLineItem();
+  else items.forEach(i => addLineItem(i.productId, i.defaultQuantity));
+}
+
+function addLineItem(productId = '', quantity = 1) {
+  const list = document.getElementById('t-items-list');
+  const row = document.createElement('div');
+  row.className = 'line-item-row';
+  
+  const pOpts = '<option value="">Select product...</option>' + allProducts.map(p => `<option value="${p.id}" ${p.id === productId ? 'selected' : ''}>${p.name}</option>`).join('');
+  
+  row.innerHTML = `
+    <select class="form-select item-prod">${pOpts}</select>
+    <input type="number" class="form-input item-qty" value="${quantity}" min="1">
+    <button class="btn btn-danger" style="padding:8px" onclick="this.parentElement.remove()" title="Remove">✕</button>
+  `;
+  list.appendChild(row);
+}
+
+function openCreate() { 
+  editId=null; document.getElementById('modal-title').textContent='New Template'; 
+  ['t-name','t-desc'].forEach(id=>document.getElementById(id).value=''); 
+  document.getElementById('t-validity').value=30; 
+  document.getElementById('t-plan').value=''; 
+  document.getElementById('t-active').checked=true; 
+  renderLineItems([]);
+  Modal.show('tpl-modal'); 
+}
+
+function openEdit(t) { 
+  editId=t.id; document.getElementById('modal-title').textContent='Edit Template'; 
+  document.getElementById('t-name').value=t.name; 
+  document.getElementById('t-validity').value=t.validityDays; 
+  document.getElementById('t-plan').value=t.planId || ''; 
+  document.getElementById('t-desc').value=t.description||''; 
+  document.getElementById('t-active').checked=t.isActive; 
+  renderLineItems(t.lineItems);
+  Modal.show('tpl-modal'); 
+}
+
+async function saveTemplate() {
+  const name = document.getElementById('t-name').value.trim();
+  const planId = document.getElementById('t-plan').value;
+  if (!name || !planId) { Toast.warning('Name and associated Plan are required.'); return; }
+  
+  const rows = document.querySelectorAll('#t-items-list .line-item-row');
+  const lineItems = [];
+  rows.forEach(r => {
+    const pid = r.querySelector('.item-prod').value;
+    const qty = parseInt(r.querySelector('.item-qty').value) || 1;
+    if (pid) lineItems.push({ productId: pid, defaultQuantity: qty });
+  });
+
+  const payload = { 
+    name, planId, 
+    validityDays: parseInt(document.getElementById('t-validity').value) || 30, 
+    description: document.getElementById('t-desc').value.trim(), 
+    isActive: document.getElementById('t-active').checked,
+    lineItems 
+  };
+
+  try {
+    if (editId) { await API.put('/quotation-templates/'+editId, payload); Toast.success('Template updated!'); }
+    else { await API.post('/quotation-templates', payload); Toast.success('Template created!'); }
+    Modal.hide('tpl-modal'); loadTemplates();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function deleteTemplate(id, name) {
+  const ok = await confirmDialog('Delete Template', `Delete template "${name}"?`);
+  if (!ok) return;
+  try { await API.delete('/quotation-templates/'+id); Toast.success('Template deleted.'); loadTemplates(); } catch (err) { Toast.error(err.message); }
+}
+</script>
+</body>
+</html>

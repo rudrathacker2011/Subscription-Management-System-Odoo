@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscriptions — SubsManager</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="app-layout">
+<aside id="sidebar" class="sidebar"></aside>
+<div class="main-content">
+<header class="topbar"><div class="topbar-title">Subscriptions</div></header>
+<main class="page-content">
+
+<div class="page-header-row">
+  <div class="page-header"><h1>Subscriptions</h1><p>Manage the complete subscription lifecycle</p></div>
+  <div style="display:flex;gap:8px">
+    <a href="/subscriptions-new.html" class="btn btn-primary" id="new-sub-btn" style="display:none">+ New Subscription</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding-bottom:0">
+    <div class="filter-bar">
+      <div class="filter-search">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search" placeholder="Search by number, customer..." oninput="debounceSearch()">
+      </div>
+      <select class="filter-select" id="status-filter" onchange="loadSubscriptions()">
+        <option value="">All Status</option>
+        <option value="DRAFT">Draft</option>
+        <option value="QUOTATION">Quotation</option>
+        <option value="CONFIRMED">Confirmed</option>
+        <option value="ACTIVE">Active</option>
+        <option value="CLOSED">Closed</option>
+      </select>
+      <select class="filter-select" id="paused-filter" onchange="loadSubscriptions()">
+        <option value="">All</option>
+        <option value="true">Paused</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Sub Number</th>
+          <th>Customer</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Next Billing</th>
+          <th>Start Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="subs-table"><tr><td colspan="7" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+    </table>
+  </div>
+  <div id="pagination" style="padding:16px 22px"></div>
+</div>
+
+</main>
+</div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/app.js"></script>
+<script>
+if (!requireAuth()) throw new Error();
+const user = Auth.getUser();
+let currentPage = 1, searchTimeout;
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (Auth.isInternal()) document.getElementById('new-sub-btn').style.display = '';
+  loadSubscriptions();
+});
+
+function debounceSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentPage=1; loadSubscriptions(); }, 350); }
+
+async function loadSubscriptions(page = 1) {
+  currentPage = page;
+  const search = document.getElementById('search').value;
+  const status = document.getElementById('status-filter').value;
+  const isPaused = document.getElementById('paused-filter').value;
+  const params = new URLSearchParams({ page, limit: 20, ...(status && { status }), ...(isPaused && { isPaused }) });
+
+  const tbody = document.getElementById('subs-table');
+  tbody.innerHTML = '<tr><td colspan="7" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr>';
+
+  try {
+    const res = await API.get('/subscriptions?' + params);
+    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="7" class="table-empty"><div class="empty-icon">🔄</div><p>No subscriptions found</p></td></tr>'; return; }
+
+    tbody.innerHTML = res.data.map(s => {
+      const statusBadge = s.isPaused ? fmt.badge('PAUSED') : fmt.badge(s.status);
+      const canEdit = ['DRAFT','QUOTATION'].includes(s.status);
+      return `<tr>
+        <td><a href="/subscriptions-detail.html?id=${s.id}" class="text-mono fw-semibold">${s.subscriptionNumber}</a></td>
+        <td>
+          <div style="font-weight:600">${s.customer?.name || '—'}</div>
+          <div style="font-size:12px;color:var(--text-muted)">${s.customer?.email || ''}</div>
+        </td>
+        <td>${s.plan?.name || '—'}<div style="font-size:12px;color:var(--text-muted)">${s.plan?.billingPeriod || ''}</div></td>
+        <td>${statusBadge}</td>
+        <td style="font-size:13px">${fmt.date(s.nextBillingDate)}</td>
+        <td style="font-size:13px">${fmt.date(s.startDate)}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <a href="/subscriptions-detail.html?id=${s.id}" class="btn btn-outline btn-xs">View</a>
+            ${Auth.isInternal() && canEdit ? `<a href="/subscriptions-new.html?id=${s.id}" class="btn btn-ghost btn-xs">Edit</a>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    renderPagination(document.getElementById('pagination'), res.pagination, loadSubscriptions);
+  } catch (err) { Toast.error('Failed to load subscriptions: ' + err.message); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SubsManager — Subscription Management Platform</title>
+<meta name="description" content="SubsManager — The complete SaaS subscription management system.">
+<link rel="stylesheet" href="/css/app.css">
+<style>
+.landing { min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0F172A 0%,#1E293B 50%,#0F172A 100%);color:white;padding:24px;text-align:center; }
+.landing-content { max-width:640px; }
+.landing-icon { font-size:72px;margin-bottom:24px; }
+.landing-title { font-size:48px;font-weight:900;letter-spacing:-2px;margin-bottom:12px;background:linear-gradient(135deg,#60A5FA,#A78BFA);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+.landing-sub { font-size:18px;color:#94A3B8;margin-bottom:40px;line-height:1.6; }
+.landing-cta { display:flex;gap:12px;justify-content:center;flex-wrap:wrap; }
+.landing-features { display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px;text-align:left; }
+.landing-feature { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px; }
+.landing-feature-icon { font-size:24px;margin-bottom:8px; }
+.landing-feature-title { font-size:13.5px;font-weight:700;margin-bottom:4px; }
+.landing-feature-desc { font-size:12px;color:#94A3B8; }
+@media(max-width:640px){ .landing-features{grid-template-columns:1fr 1fr;} .landing-title{font-size:32px;} }
+</style>
+</head>
+<body>
+<div class="landing">
+  <div class="landing-content">
+    <div class="landing-icon">💼</div>
+    <h1 class="landing-title">SubsManager</h1>
+    <p class="landing-sub">The complete subscription management platform for SaaS businesses. Automate billing, track subscriptions, and gain real-time insights.</p>
+    <div class="landing-cta">
+      <a href="/login.html" class="btn btn-primary" style="padding:13px 32px;font-size:15px">Sign In →</a>
+      <a href="/register.html" class="btn btn-outline" style="padding:13px 32px;font-size:15px;border-color:rgba(255,255,255,0.2);color:white">Create Account</a>
+    </div>
+    <div class="landing-features">
+      <div class="landing-feature"><div class="landing-feature-icon">🔄</div><div class="landing-feature-title">Subscription Lifecycle</div><div class="landing-feature-desc">Draft → Quotation → Active → Closed state machine</div></div>
+      <div class="landing-feature"><div class="landing-feature-icon">📄</div><div class="landing-feature-title">Auto Invoicing</div><div class="landing-feature-desc">Automatic invoice generation on billing dates</div></div>
+      <div class="landing-feature"><div class="landing-feature-icon">💳</div><div class="landing-feature-title">Payment Tracking</div><div class="landing-feature-desc">Multi-method payments with auto-reconciliation</div></div>
+      <div class="landing-feature"><div class="landing-feature-icon">📊</div><div class="landing-feature-title">Analytics</div><div class="landing-feature-desc">MRR, revenue trends, and overdue aging reports</div></div>
+      <div class="landing-feature"><div class="landing-feature-icon">🏷️</div><div class="landing-feature-title">Discounts & Taxes</div><div class="landing-feature-desc">Flexible promo codes and GST configuration</div></div>
+      <div class="landing-feature"><div class="landing-feature-icon">🤖</div><div class="landing-feature-title">Automation</div><div class="landing-feature-desc">Cron billing, renewal reminders, overdue alerts</div></div>
+    </div>
+  </div>
+</div>
+<script>
+if (localStorage.getItem('access_token')) location.href = '/dashboard.html';
+</script>
+</body>
+</html>
