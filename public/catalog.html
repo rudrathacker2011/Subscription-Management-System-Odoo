@@ -1,107 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Product Catalog — Revora</title>
-<link rel="stylesheet" href="/css/app.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Catalog — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title">Catalog</div>
-      <div class="topbar-search">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" placeholder="Search products...">
-      </div>
-      <div class="topbar-actions"><div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn" title="Notifications">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
-    </header>
-    <main class="page-content">
-      <div class="page-header page-header-row">
-        <div>
-          <h1>Product Catalog</h1>
-          <p class="text-muted">Browse available products and request a subscription</p>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Catalog</div>
+        <div class="topbar-search">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input type="text" placeholder="Search products...">
         </div>
-        <button class="btn btn-primary" onclick="openCartModal()" id="cart-btn" style="display:none">🛒 Cart (<span id="cart-count">0</span>)</button>
-      </div>
-
-      <div class="filter-bar">
-        <div class="filter-search">
-          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input type="text" id="catalog-search" placeholder="Search by product name..." oninput="loadCatalog()">
+        <div class="topbar-actions">
+          <div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn"
+              title="Notifications">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body"></div>
+            </div>
+          </div>
         </div>
-        <select class="filter-select" id="catalog-type" onchange="loadCatalog()">
-          <option value="">All Types</option>
-          <option value="SERVICE">Services</option>
-          <option value="GOOD">Goods</option>
-        </select>
-      </div>
+      </header>
+      <main class="page-content">
+        <div class="page-header page-header-row">
+          <div>
+            <h1 style="cursor: pointer;" onclick="window.location.reload()">Product Catalog</h1>
+            <p class="text-muted">Browse available products and request a subscription</p>
+          </div>
+          <button class="btn btn-primary" onclick="openCartModal()" id="cart-btn" style="display:none">🛒 Cart (<span
+              id="cart-count">0</span>)</button>
+        </div>
 
-      <div class="catalog-grid" id="catalog-grid">
-        <div class="loading-center"><div class="loading-spinner"></div></div>
-      </div>
-    </main>
-  </div>
-</div>
+        <div class="filter-bar">
+          <div class="filter-search">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input type="text" id="catalog-search" placeholder="Search by product name..." oninput="loadCatalog()">
+          </div>
+          <select class="filter-select" id="catalog-type" onchange="loadCatalog()">
+            <option value="">All Types</option>
+            <option value="SERVICE">Services</option>
+            <option value="GOOD">Goods</option>
+          </select>
+        </div>
 
-<!-- Cart/Request Modal -->
-<div class="modal-overlay" id="cart-modal">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div class="modal-title">🛒 Subscription Request</div>
-      <button class="modal-close" onclick="Modal.hide('cart-modal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Select Plan <span class="required">*</span></label>
-        <select class="form-select" id="cart-plan"></select>
-      </div>
-      <div class="detail-section-title mt-2">Selected Products</div>
-      <div id="cart-items"></div>
-      <div style="text-align:right;margin-top:16px">
-        <strong>Estimated Total: <span id="cart-total" class="text-primary">₹0.00</span></strong>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="Modal.hide('cart-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitRequest()">Submit Request →</button>
+        <div class="catalog-grid" id="catalog-grid">
+          <div class="loading-center">
+            <div class="loading-spinner"></div>
+          </div>
+        </div>
+      </main>
     </div>
   </div>
-</div>
 
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth()) throw new Error('Unauthorized');
+  <!-- Cart/Request Modal -->
+  <div class="modal-overlay" id="cart-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title">🛒 Subscription Request</div>
+        <button class="modal-close" onclick="Modal.hide('cart-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Select Plan <span class="required">*</span></label>
+          <select class="form-select" id="cart-plan"></select>
+        </div>
+        <div class="detail-section-title mt-2">Selected Products</div>
+        <div id="cart-items"></div>
+        <div style="text-align:right;margin-top:16px">
+          <strong>Estimated Total: <span id="cart-total" class="text-primary">$0.00</span></strong>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="Modal.hide('cart-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRequest()">Submit Request →</button>
+      </div>
+    </div>
+  </div>
 
-let products = [], plans = [], cart = [];
-let planSelectUI;
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error('Unauthorized');
 
-async function loadCatalog() {
-  try {
-    const search = document.getElementById('catalog-search').value;
-    const type = document.getElementById('catalog-type').value;
-    let url = '/catalog?';
-    if (search) url += `search=${encodeURIComponent(search)}&`;
-    if (type) url += `type=${type}`;
+    let products = [], plans = [], cart = [];
+    let planSelectUI;
 
-    const res = await API.get(url);
-    products = res.data.products;
-    plans = res.data.plans;
-    renderProducts();
-  } catch (err) {
-    Toast.error('Failed to load catalog: ' + err.message);
-  }
-}
+    async function loadCatalog() {
+      try {
+        const search = document.getElementById('catalog-search').value;
+        const type = document.getElementById('catalog-type').value;
+        let url = '/catalog?';
+        if (search) url += `search=${encodeURIComponent(search)}&`;
+        if (type) url += `type=${type}`;
 
-function renderProducts() {
-  const grid = document.getElementById('catalog-grid');
-  if (products.length === 0) {
-    grid.innerHTML = '<div class="table-empty"><div class="empty-icon">📦</div><p>No products available</p></div>';
-    return;
-  }
-  grid.innerHTML = products.map(p => `
+        const res = await API.get(url);
+        products = res.data.products;
+        plans = res.data.plans;
+        renderProducts();
+      } catch (err) {
+        Toast.error('Failed to load catalog: ' + err.message);
+      }
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('catalog-grid');
+      if (products.length === 0) {
+        grid.innerHTML = '<div class="table-empty"><div class="empty-icon">📦</div><p>No products available</p></div>';
+        return;
+      }
+      grid.innerHTML = products.map(p => `
     <div class="catalog-card">
       <div class="catalog-card-header">
         <div class="catalog-card-icon">${p.productType === 'SERVICE' ? '⚡' : '📦'}</div>
@@ -119,42 +142,42 @@ function renderProducts() {
       </div>
     </div>
   `).join('');
-}
+    }
 
-function addToCart(productId) {
-  const existing = cart.find(c => c.productId === productId);
-  if (existing) {
-    cart = cart.filter(c => c.productId !== productId);
-  } else {
-    const product = products.find(p => p.id === productId);
-    cart.push({ productId, quantity: 1, product });
-  }
-  updateCartUI();
-  renderProducts();
-}
+    function addToCart(productId) {
+      const existing = cart.find(c => c.productId === productId);
+      if (existing) {
+        cart = cart.filter(c => c.productId !== productId);
+      } else {
+        const product = products.find(p => p.id === productId);
+        cart.push({ productId, quantity: 1, product });
+      }
+      updateCartUI();
+      renderProducts();
+    }
 
-function updateCartUI() {
-  const btn = document.getElementById('cart-btn');
-  const count = document.getElementById('cart-count');
-  count.textContent = cart.length;
-  btn.style.display = cart.length > 0 ? 'inline-flex' : 'none';
-}
+    function updateCartUI() {
+      const btn = document.getElementById('cart-btn');
+      const count = document.getElementById('cart-count');
+      count.textContent = cart.length;
+      btn.style.display = cart.length > 0 ? 'inline-flex' : 'none';
+    }
 
-function openCartModal() {
-  const planSelect = document.getElementById('cart-plan');
-  planSelect.innerHTML = plans.map(p => `<option value="${p.id}">${p.name} — ${fmt.currency(p.price)}/${p.billingPeriod.toLowerCase()}</option>`).join('');
+    function openCartModal() {
+      const planSelect = document.getElementById('cart-plan');
+      planSelect.innerHTML = plans.map(p => `<option value="${p.id}">${p.name} — ${fmt.currency(p.price)}/${p.billingPeriod.toLowerCase()}</option>`).join('');
 
-  if (planSelectUI) planSelectUI.refresh();
-  renderCartItems();
-  Modal.show('cart-modal');
-}
+      if (planSelectUI) planSelectUI.refresh();
+      renderCartItems();
+      Modal.show('cart-modal');
+    }
 
-function renderCartItems() {
-  let total = 0;
-  document.getElementById('cart-items').innerHTML = cart.map((item, i) => {
-    const lineTotal = item.product.salesPrice * item.quantity;
-    total += lineTotal;
-    return `
+    function renderCartItems() {
+      let total = 0;
+      document.getElementById('cart-items').innerHTML = cart.map((item, i) => {
+        const lineTotal = item.product.salesPrice * item.quantity;
+        total += lineTotal;
+        return `
     <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1">
         <div style="font-weight:600">${item.product.name}</div>
@@ -164,66 +187,67 @@ function renderCartItems() {
       <div style="font-weight:700;width:100px;text-align:right;color:var(--primary)">${fmt.currency(lineTotal)}</div>
       <button class="btn btn-ghost btn-xs" onclick="removeFromCart(${i})">✕</button>
     </div>`;
-  }).join('');
-  document.getElementById('cart-total').textContent = fmt.currency(total);
-}
+      }).join('');
+      document.getElementById('cart-total').textContent = fmt.currency(total);
+    }
 
-function updateCartQty(index, qty) {
-  cart[index].quantity = Math.max(1, parseInt(qty) || 1);
-  renderCartItems();
-}
+    function updateCartQty(index, qty) {
+      cart[index].quantity = Math.max(1, parseInt(qty) || 1);
+      renderCartItems();
+    }
 
-function removeFromCart(index) {
-  cart.splice(index, 1);
-  renderCartItems();
-  updateCartUI();
-  renderProducts();
-  if (cart.length === 0) Modal.hide('cart-modal');
-}
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      renderCartItems();
+      updateCartUI();
+      renderProducts();
+      if (cart.length === 0) Modal.hide('cart-modal');
+    }
 
-async function submitRequest() {
-  const btn = document.querySelector('#cart-modal .btn-primary');
-  const orgHtml = btn.innerHTML;
-  
-  try {
-    const planId = document.getElementById('cart-plan').value;
-    if (!planId) return Toast.error('Please select a plan');
-    if (cart.length === 0) return Toast.error('Cart is empty');
+    async function submitRequest() {
+      const btn = document.querySelector('#cart-modal .btn-primary');
+      const orgHtml = btn.innerHTML;
 
-    // Start Loading
-    btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner-xs"></div> Submitting...';
+      try {
+        const planId = document.getElementById('cart-plan').value;
+        if (!planId) return Toast.error('Please select a plan');
+        if (cart.length === 0) return Toast.error('Cart is empty');
 
-    const lineItems = cart.map(c => ({
-      productId: c.productId,
-      quantity: c.quantity
-    }));
+        // Start Loading
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner-xs"></div> Submitting...';
 
-    const res = await API.post('/subscriptions/request', { planId, lineItems });
-    Toast.success('Subscription activated! Redirecting to payment...');
-    Modal.hide('cart-modal');
-    cart = [];
-    updateCartUI();
-    renderProducts();
-    
-    setTimeout(() => {
-        if (res.invoiceId) {
+        const lineItems = cart.map(c => ({
+          productId: c.productId,
+          quantity: c.quantity
+        }));
+
+        const res = await API.post('/subscriptions/request', { planId, lineItems });
+        Toast.success('Subscription activated! Redirecting to payment...');
+        Modal.hide('cart-modal');
+        cart = [];
+        updateCartUI();
+        renderProducts();
+
+        setTimeout(() => {
+          if (res.invoiceId) {
             window.location.href = `/invoices-detail.html?id=${res.invoiceId}`;
-        } else {
+          } else {
             window.location.href = '/subscriptions.html';
-        }
-    }, 1500);
-  } catch (err) {
-    Toast.error(err.message);
-    // Reset button on error
-    btn.disabled = false;
-    btn.innerHTML = orgHtml;
-  }
-}
+          }
+        }, 1500);
+      } catch (err) {
+        Toast.error(err.message);
+        // Reset button on error
+        btn.disabled = false;
+        btn.innerHTML = orgHtml;
+      }
+    }
 
-UI.upgradeSelect('catalog-type', () => loadCatalog());
-planSelectUI = UI.upgradeSelect('cart-plan');
-loadCatalog();
-</script>
+    UI.upgradeSelect('catalog-type', () => loadCatalog());
+    planSelectUI = UI.upgradeSelect('cart-plan');
+    loadCatalog();
+  </script>
 </body>
+
 </html>

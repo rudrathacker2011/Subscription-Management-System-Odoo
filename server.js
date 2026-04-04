@@ -121,7 +121,7 @@ const connectDB = async (retries = 5, delay = 3000) => {
 
 connectDB().then(async () => {
     // Verify email connection (non-blocking)
-    verifyEmail().catch(() => {});
+    verifyEmail().catch(() => { });
 
     app.listen(PORT, () => {
         console.log(`🚀 [Revora] Server running at http://localhost:${PORT}`);

@@ -269,25 +269,44 @@ function buildSidebar() {
     const sidebar = document.getElementById('sidebar');
     if (sidebar) {
         sidebar.innerHTML = `
-        <div class="sidebar-logo">
+        <div class="sidebar-logo" style="cursor: pointer;" onclick="window.location.reload()">
             <div class="sidebar-logo-icon">R</div>
             <div><div class="sidebar-logo-text">Revora</div><div class="sidebar-logo-sub">Subscription Platform</div></div>
         </div>
         <nav class="sidebar-nav">${navHtml}</nav>
         <div class="sidebar-footer">
-            <div class="sidebar-user">
+            <div class="sidebar-user" id="sidebar-user-block" style="position: relative; cursor: pointer;">
                 <div class="sidebar-avatar">${initials}</div>
                 <div class="sidebar-user-info">
                     <div class="sidebar-user-name">${user.name}</div>
                     <div class="sidebar-user-role">${user.role}</div>
                 </div>
                 <button class="sidebar-logout-btn" onclick="logout()" title="Logout">${ICONS.logout}</button>
+                <div class="sidebar-profile-dropdown form-with-spark" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 10px; background: white; padding: 16px; border-radius: 12px; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: #1E1033; cursor: default;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div class="sidebar-avatar" style="width: 48px; height: 48px; font-size: 18px;">${initials}</div>
+                        <div>
+                            <div style="font-weight: 700; color: #1E1033;">${user.name}</div>
+                            <div style="font-size: 13px; color: #64588A;">${user.email || user.name.split(' ').join('.').toLowerCase() + '@company.com'}</div>
+                            <div style="font-size: 11px; background: rgba(124, 58, 237, 0.1); color: #7C3AED; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; font-weight: 600;">${user.role}</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <a href="/profile.html" style="padding: 8px; border-radius: 8px; color: #1E1033; text-decoration: none; display: block; background: #F5F3FF; text-align: center; font-weight: 600; font-size: 13px;">View Profile</a>
+                        <button onclick="logout()" style="padding: 8px; border-radius: 8px; color: #EF4444; background: #FEF2F2; border: none; width: 100%; font-weight: 600; font-size: 13px; cursor: pointer;">Sign Out</button>
+                    </div>
+                </div>
             </div>
         </div>`;
 
         const savedScroll = sessionStorage.getItem('sidebarScrollPos');
         if (savedScroll) requestAnimationFrame(() => sidebar.scrollTop = parseInt(savedScroll, 10));
         sidebar.addEventListener('scroll', () => sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop));
+
+        const userBlock = document.getElementById('sidebar-user-block');
+        const dropdown = userBlock.querySelector('.sidebar-profile-dropdown');
+        userBlock.addEventListener('mouseenter', () => dropdown.style.display = 'block');
+        userBlock.addEventListener('mouseleave', () => dropdown.style.display = 'none');
     }
 }
 
@@ -310,10 +329,10 @@ function requireAuth(allowedRoles = null) {
 
 // ===== HELPERS =====
 const fmt = {
-    currency: (n, symbol = '₹') => `${symbol}${(parseFloat(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    date: (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-    dateTime: (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—',
-    number: (n) => (parseFloat(n) || 0).toLocaleString('en-IN'),
+    currency: (n, symbol = '$') => `${symbol}${(parseFloat(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    date: (d) => d ? new Date(d).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+    dateTime: (d) => d ? new Date(d).toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—',
+    number: (n) => (parseFloat(n) || 0).toLocaleString('en-US'),
     badge: (status) => {
         const s = (status || '').toLowerCase();
         return `<span class="badge badge-${s}">${status || '—'}</span>`;
@@ -453,4 +472,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('sidebar')) buildSidebar();
     if (document.getElementById('toast-container') === null) Toast.init();
     NotifManager.init();
+
+    // Global Topbar Search
+    const searchInputs = document.querySelectorAll('.topbar-search input');
+    searchInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('tbody tr:not(.table-empty)');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+    });
 });

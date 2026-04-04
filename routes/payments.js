@@ -57,7 +57,7 @@ router.post('/', requireAuth, async (req, res) => {
 
         const payAmt = parseFloat(amount);
         if (payAmt <= 0) return res.status(400).json({ success: false, error: 'Amount must be greater than 0.' });
-        if (payAmt > invoice.amountDue) return res.status(400).json({ success: false, error: `Amount exceeds outstanding balance of ₹${invoice.amountDue.toFixed(2)}.` });
+        if (payAmt > invoice.amountDue) return res.status(400).json({ success: false, error: `Amount exceeds outstanding balance of $${invoice.amountDue.toFixed(2)}.` });
 
         let payNumber;
         let unique = false;

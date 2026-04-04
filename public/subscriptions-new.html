@@ -1,213 +1,275 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>New Subscription — SubsManager</title>
-<link rel="stylesheet" href="/css/app.css">
-<style>
-.section-title { font-size: 16px; font-weight: 800; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.line-item-row { display: grid; grid-template-columns: 2fr 100px 150px 150px 40px; gap: 12px; margin-bottom: 8px; align-items: start; }
-.totals-box { background: var(--surface-2); border-radius: var(--radius); padding: 16px; text-align: right; width: 300px; margin-left: auto; margin-top: 16px; }
-.totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-.totals-row.grand-total { border-top: 2px solid var(--border); margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 800; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Subscription — SubsManager</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .line-item-row {
+      display: grid;
+      grid-template-columns: 2fr 100px 150px 150px 40px;
+      gap: 12px;
+      margin-bottom: 8px;
+      align-items: start;
+    }
+
+    .totals-box {
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: right;
+      width: 300px;
+      margin-left: auto;
+      margin-top: 16px;
+    }
+
+    .totals-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .totals-row.grand-total {
+      border-top: 2px solid var(--border);
+      margin-top: 8px;
+      padding-top: 12px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+  </style>
 </head>
+
 <body>
-<div class="app-layout">
-<aside id="sidebar" class="sidebar"></aside>
-<div class="main-content">
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:12px">
-    <a href="/subscriptions.html" class="btn btn-ghost btn-sm">← Cancel</a>
-    <div class="topbar-title" id="page-title">New Subscription / Quotation</div>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <a href="/subscriptions.html" class="btn btn-ghost btn-sm">← Cancel</a>
+          <div class="topbar-title" id="page-title">New Subscription / Quotation</div>
+        </div>
+      </header>
+      <main class="page-content" style="max-width: 900px">
+        <div id="loading" class="loading-center">
+          <div class="loading-spinner"></div>
+        </div>
+        <div id="form-content" style="display:none">
+
+          <!-- Template Auto-filler -->
+          <div class="card mb-2" style="background:var(--primary-glow);border-color:var(--primary)">
+            <div class="card-body" style="display:flex;align-items:center;gap:16px">
+              <div style="font-size:24px">🪄</div>
+              <div style="flex:1">
+                <div style="font-weight:700;color:var(--primary);margin-bottom:4px">Use a Quotation Template</div>
+                <select id="f-template" class="form-select" onchange="applyTemplate()">
+                  <option value="">-- Start from scratch --</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Form -->
+          <div class="card mb-2 form-with-spark">
+            <div class="card-body">
+              <div class="section-title">1. Customer & Plan</div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Customer <span class="required">*</span></label>
+                  <select id="f-customer" class="form-select">
+                    <option value="">-- Loading --</option>
+                  </select>
+                </div>
+                <div class="form-group"><label class="form-label">Plan <span class="required">*</span></label>
+                  <select id="f-plan" class="form-select">
+                    <option value="">-- Loading --</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Start Date <span
+                      class="required">*</span></label><input type="date" id="f-start" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Payment Terms</label>
+                  <select id="f-terms" class="form-select">
+                    <option value="DUE_ON_RECEIPT">Due on Receipt</option>
+                    <option value="NET_15">Net 15</option>
+                    <option value="NET_30" selected>Net 30</option>
+                    <option value="NET_60">Net 60</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-2 form-with-spark">
+            <div class="card-body">
+              <div class="section-title">2. Products & Line Items</div>
+              <div class="line-item-header"
+                style="display:grid; grid-template-columns: 2fr 100px 150px 150px 40px; gap: 12px; margin-bottom: 8px; font-weight:700;font-size:12px;color:var(--text-secondary)">
+                <div>Product</div>
+                <div>Qty</div>
+                <div>Unit Price ($)</div>
+                <div style="text-align:right">Total ($)</div>
+                <div></div>
+              </div>
+              <div id="line-items-container"></div>
+              <button class="btn btn-outline btn-sm mt-1" onclick="addLineItem()">+ Add Product</button>
+
+              <div class="totals-box" style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2);">
+                <div class="totals-row"><span>Subtotal</span><span class="text-mono" id="t-subtotal">$0.00</span></div>
+                <div class="totals-row grand-total" style="border-top-color: rgba(139, 92, 246, 0.2)"><span>Total</span><span class="text-mono text-primary"
+                    id="t-total" style="font-size: 22px">$0.00</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px">
+            <button class="btn btn-outline" onclick="window.history.back()">Cancel</button>
+            <button class="btn btn-primary" style="background: linear-gradient(135deg, #7C3AED, #F59E0B); padding: 12px 24px" onclick="saveSubscription()">Save Request</button>
+          </div>
+
+        </div>
+      </main>
+    </div>
   </div>
-</header>
-<main class="page-content" style="max-width: 900px">
-  <div id="loading" class="loading-center"><div class="loading-spinner"></div></div>
-  <div id="form-content" style="display:none">
-    
-    <!-- Template Auto-filler -->
-    <div class="card mb-2" style="background:var(--primary-glow);border-color:var(--primary)">
-      <div class="card-body" style="display:flex;align-items:center;gap:16px">
-        <div style="font-size:24px">🪄</div>
-        <div style="flex:1">
-          <div style="font-weight:700;color:var(--primary);margin-bottom:4px">Use a Quotation Template</div>
-          <select id="f-template" class="form-select" onchange="applyTemplate()"><option value="">-- Start from scratch --</option></select>
-        </div>
-      </div>
-    </div>
 
-    <!-- Main Form -->
-    <div class="card mb-2">
-      <div class="card-body">
-        <div class="section-title">1. Customer & Plan</div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Customer <span class="required">*</span></label>
-            <select id="f-customer" class="form-select"><option value="">-- Loading --</option></select></div>
-          <div class="form-group"><label class="form-label">Plan <span class="required">*</span></label>
-            <select id="f-plan" class="form-select"><option value="">-- Loading --</option></select></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Start Date <span class="required">*</span></label><input type="date" id="f-start" class="form-input"></div>
-          <div class="form-group"><label class="form-label">Payment Terms</label>
-            <select id="f-terms" class="form-select"><option value="DUE_ON_RECEIPT">Due on Receipt</option><option value="NET_15">Net 15</option><option value="NET_30" selected>Net 30</option><option value="NET_60">Net 60</option></select></div>
-        </div>
-      </div>
-    </div>
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error();
 
-    <div class="card mb-2">
-      <div class="card-body">
-        <div class="section-title">2. Products & Line Items</div>
-        <div class="line-item-header" style="display:grid; grid-template-columns: 2fr 100px 150px 150px 40px; gap: 12px; margin-bottom: 8px; font-weight:700;font-size:12px;color:var(--text-secondary)">
-          <div>Product</div><div>Qty</div><div>Unit Price (₹)</div><div style="text-align:right">Total (₹)</div><div></div>
-        </div>
-        <div id="line-items-container"></div>
-        <button class="btn btn-outline btn-sm mt-1" onclick="addLineItem()">+ Add Product</button>
-        
-        <div class="totals-box">
-          <div class="totals-row"><span>Subtotal</span><span class="text-mono" id="t-subtotal">₹0.00</span></div>
-          <div class="totals-row grand-total"><span>Total</span><span class="text-mono text-primary" id="t-total">₹0.00</span></div>
-        </div>
-      </div>
-    </div>
+    const urlId = new URLSearchParams(location.search).get('id');
+    let db = { customers: [], plans: [], products: [], templates: [] };
 
-    <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px">
-      <button class="btn btn-outline" onclick="window.history.back()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSubscription()">Save as Draft</button>
-    </div>
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('f-start').value = new Date().toISOString().split('T')[0];
+      try {
+        const [custRes, planRes, prodRes, tplRes] = await Promise.all([
+          API.get('/users?role=PORTAL&limit=100'), API.get('/plans'), API.get('/products'), API.get('/quotation-templates')
+        ]);
+        db.customers = custRes.data;
+        db.plans = planRes.data;
+        db.products = prodRes.data.filter(p => p.isActive);
+        db.templates = tplRes.data.filter(t => t.isActive);
 
-  </div>
-</main>
-</div>
-</div>
+        document.getElementById('f-customer').innerHTML = '<option value="">-- Select Customer --</option>' + db.customers.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
+        document.getElementById('f-plan').innerHTML = '<option value="">-- Select Plan --</option>' + db.plans.map(p => `<option value="${p.id}">${p.name} - ${fmt.currency(p.price)}</option>`).join('');
+        document.getElementById('f-template').innerHTML += db.templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
 
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
+        if (urlId) await loadExistingSub();
+        else addLineItem();
 
-const urlId = new URLSearchParams(location.search).get('id');
-let db = { customers: [], plans: [], products: [], templates: [] };
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('form-content').style.display = '';
+      } catch (err) { Toast.error('Failed to load form data: ' + err.message); }
+    });
 
-document.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('f-start').value = new Date().toISOString().split('T')[0];
-  try {
-    const [custRes, planRes, prodRes, tplRes] = await Promise.all([
-      API.get('/users?role=PORTAL&limit=100'), API.get('/plans'), API.get('/products'), API.get('/quotation-templates')
-    ]);
-    db.customers = custRes.data;
-    db.plans = planRes.data;
-    db.products = prodRes.data.filter(p => p.isActive);
-    db.templates = tplRes.data.filter(t => t.isActive);
-    
-    document.getElementById('f-customer').innerHTML = '<option value="">-- Select Customer --</option>' + db.customers.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
-    document.getElementById('f-plan').innerHTML = '<option value="">-- Select Plan --</option>' + db.plans.map(p => `<option value="${p.id}">${p.name} - ${fmt.currency(p.price)}</option>`).join('');
-    document.getElementById('f-template').innerHTML += db.templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-    
-    if (urlId) await loadExistingSub();
-    else addLineItem();
-    
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('form-content').style.display = '';
-  } catch (err) { Toast.error('Failed to load form data: ' + err.message); }
-});
+    async function loadExistingSub() {
+      document.getElementById('page-title').textContent = 'Edit Draft';
+      const sub = (await API.get('/subscriptions/' + urlId)).data;
+      document.getElementById('f-customer').value = sub.customerId;
+      document.getElementById('f-plan').value = sub.planId;
+      document.getElementById('f-start').value = sub.startDate.split('T')[0];
+      document.getElementById('f-terms').value = sub.paymentTerms;
+      sub.lineItems.forEach(li => addLineItem(li.productId, li.quantity, li.unitPrice));
+      updateTotals();
+    }
 
-async function loadExistingSub() {
-  document.getElementById('page-title').textContent = 'Edit Draft';
-  const sub = (await API.get('/subscriptions/'+urlId)).data;
-  document.getElementById('f-customer').value = sub.customerId;
-  document.getElementById('f-plan').value = sub.planId;
-  document.getElementById('f-start').value = sub.startDate.split('T')[0];
-  document.getElementById('f-terms').value = sub.paymentTerms;
-  sub.lineItems.forEach(li => addLineItem(li.productId, li.quantity, li.unitPrice));
-  updateTotals();
-}
+    function applyTemplate() {
+      const tId = document.getElementById('f-template').value;
+      if (!tId) return;
+      const t = db.templates.find(x => x.id === tId);
+      if (t.planId) document.getElementById('f-plan').value = t.planId;
+      document.getElementById('line-items-container').innerHTML = '';
+      if (t.lineItems && t.lineItems.length) {
+        t.lineItems.forEach(li => addLineItem(li.productId, li.defaultQuantity, li.product.salesPrice));
+      } else addLineItem();
+      updateTotals();
+    }
 
-function applyTemplate() {
-  const tId = document.getElementById('f-template').value;
-  if (!tId) return;
-  const t = db.templates.find(x => x.id === tId);
-  if (t.planId) document.getElementById('f-plan').value = t.planId;
-  document.getElementById('line-items-container').innerHTML = '';
-  if (t.lineItems && t.lineItems.length) {
-    t.lineItems.forEach(li => addLineItem(li.productId, li.defaultQuantity, li.product.salesPrice));
-  } else addLineItem();
-  updateTotals();
-}
+    function addLineItem(prodId = '', qty = 1, price = null) {
+      const container = document.getElementById('line-items-container');
+      const row = document.createElement('div');
+      row.className = 'line-item-row';
 
-function addLineItem(prodId = '', qty = 1, price = null) {
-  const container = document.getElementById('line-items-container');
-  const row = document.createElement('div');
-  row.className = 'line-item-row';
-  
-  const pOpts = '<option value="">Select product...</option>' + db.products.map(p => `<option value="${p.id}" data-price="${p.salesPrice}" ${p.id === prodId ? 'selected' : ''}>${p.name}</option>`).join('');
-  
-  row.innerHTML = `
+      const pOpts = '<option value="">Select product...</option>' + db.products.map(p => `<option value="${p.id}" data-price="${p.salesPrice}" ${p.id === prodId ? 'selected' : ''}>${p.name}</option>`).join('');
+
+      row.innerHTML = `
     <select class="form-select item-prod" onchange="prodChanged(this)">${pOpts}</select>
     <input type="number" class="form-input text-mono item-qty" value="${qty}" min="1" oninput="updateTotals()">
-    <input type="number" class="form-input text-mono item-price" value="${price!==null?price:''}" step="0.01" oninput="updateTotals()">
-    <div class="text-mono fw-bold item-total" style="text-align:right;padding-top:10px">₹0.00</div>
+    <input type="number" class="form-input text-mono item-price" value="${price !== null ? price : ''}" step="0.01" oninput="updateTotals()">
+    <div class="text-mono fw-bold item-total" style="text-align:right;padding-top:10px">$0.00</div>
     <button class="btn btn-danger" style="padding:8px" onclick="this.parentElement.remove();updateTotals()" title="Remove">✕</button>
   `;
-  container.appendChild(row);
-  if (prodId && price === null) prodChanged(row.querySelector('.item-prod'));
-  updateTotals();
-}
-
-function prodChanged(selectEl) {
-  const row = selectEl.parentElement;
-  const opt = selectEl.options[selectEl.selectedIndex];
-  if (opt.value) {
-    row.querySelector('.item-price').value = opt.getAttribute('data-price') || 0;
-  }
-  updateTotals();
-}
-
-function updateTotals() {
-  let subtotal = 0;
-  document.querySelectorAll('.line-item-row').forEach(row => {
-    const qty = parseInt(row.querySelector('.item-qty').value) || 0;
-    const price = parseFloat(row.querySelector('.item-price').value) || 0;
-    const tot = qty * price;
-    row.querySelector('.item-total').textContent = fmt.currency(tot);
-    subtotal += tot;
-  });
-  document.getElementById('t-subtotal').textContent = fmt.currency(subtotal);
-  document.getElementById('t-total').textContent = fmt.currency(subtotal); /* Taxes/Discounts handled by backend later */
-}
-
-async function saveSubscription() {
-  const payload = {
-    customerId: document.getElementById('f-customer').value,
-    planId: document.getElementById('f-plan').value,
-    startDate: document.getElementById('f-start').value,
-    paymentTerms: document.getElementById('f-terms').value,
-    lineItems: []
-  };
-  
-  if (!payload.customerId || !payload.planId || !payload.startDate) { Toast.warning('Customer, Plan, and Start Date are required.'); return; }
-  
-  document.querySelectorAll('.line-item-row').forEach(row => {
-    const pid = row.querySelector('.item-prod').value;
-    const qty = parseInt(row.querySelector('.item-qty').value) || 1;
-    const price = parseFloat(row.querySelector('.item-price').value) || 0;
-    if (pid) payload.lineItems.push({ productId: pid, quantity: qty, unitPrice: price });
-  });
-
-  try {
-    let res;
-    if (urlId) {
-      res = await API.put('/subscriptions/'+urlId, payload);
-      Toast.success('Draft updated!');
-    } else {
-      const tId = document.getElementById('f-template').value;
-      if (tId) payload.templateId = tId;
-      res = await API.post('/subscriptions', payload);
-      Toast.success('Draft created!');
+      container.appendChild(row);
+      if (prodId && price === null) prodChanged(row.querySelector('.item-prod'));
+      updateTotals();
     }
-    setTimeout(() => window.location.href = `/subscriptions-detail.html?id=${res.data.id}`, 1000);
-  } catch (err) { Toast.error(err.message); }
-}
-</script>
+
+    function prodChanged(selectEl) {
+      const row = selectEl.parentElement;
+      const opt = selectEl.options[selectEl.selectedIndex];
+      if (opt.value) {
+        row.querySelector('.item-price').value = opt.getAttribute('data-price') || 0;
+      }
+      updateTotals();
+    }
+
+    function updateTotals() {
+      let subtotal = 0;
+      document.querySelectorAll('.line-item-row').forEach(row => {
+        const qty = parseInt(row.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const tot = qty * price;
+        row.querySelector('.item-total').textContent = fmt.currency(tot);
+        subtotal += tot;
+      });
+      document.getElementById('t-subtotal').textContent = fmt.currency(subtotal);
+      document.getElementById('t-total').textContent = fmt.currency(subtotal); /* Taxes/Discounts handled by backend later */
+    }
+
+    async function saveSubscription() {
+      const payload = {
+        customerId: document.getElementById('f-customer').value,
+        planId: document.getElementById('f-plan').value,
+        startDate: document.getElementById('f-start').value,
+        paymentTerms: document.getElementById('f-terms').value,
+        lineItems: []
+      };
+
+      if (!payload.customerId || !payload.planId || !payload.startDate) { Toast.warning('Customer, Plan, and Start Date are required.'); return; }
+
+      document.querySelectorAll('.line-item-row').forEach(row => {
+        const pid = row.querySelector('.item-prod').value;
+        const qty = parseInt(row.querySelector('.item-qty').value) || 1;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        if (pid) payload.lineItems.push({ productId: pid, quantity: qty, unitPrice: price });
+      });
+
+      try {
+        let res;
+        if (urlId) {
+          res = await API.put('/subscriptions/' + urlId, payload);
+          Toast.success('Draft updated!');
+        } else {
+          const tId = document.getElementById('f-template').value;
+          if (tId) payload.templateId = tId;
+          res = await API.post('/subscriptions', payload);
+          Toast.success('Draft created!');
+        }
+        setTimeout(() => window.location.href = `/subscriptions-detail.html?id=${res.data.id}`, 1000);
+      } catch (err) { Toast.error(err.message); }
+    }
+  </script>
 </body>
+
 </html>

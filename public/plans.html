@@ -1,60 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Recurring Plans — Revora</title>
-<link rel="stylesheet" href="/css/app.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recurring Plans — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title">Recurring Plans</div>
-      <div class="topbar-actions"><button class="btn btn-primary" onclick="openModal()">+ New Plan</button><div style="position:relative;margin-left:8px"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
-    </header>
-    <main class="page-content">
-      <div class="page-header"><h1>Subscription Plans</h1><p class="text-muted">Manage recurring billing plans</p></div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Plan Name</th><th>Billing Period</th><th>Price</th><th>Closable/Pausable</th><th>Actions</th></tr></thead>
-            <tbody id="table-body"><tr><td colspan="5" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
-          </table>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Recurring Plans</div>
+        <div class="topbar-actions"><button class="btn btn-primary" onclick="openModal()">+ New Plan</button>
+          <div style="position:relative;margin-left:8px"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span
+                class="notif-badge" id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body"></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </main>
-  </div>
-</div>
-
-<div class="modal-overlay" id="form-modal">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title" id="modal-title">New Plan</div><button class="modal-close" onclick="Modal.hide('form-modal')">✕</button></div>
-    <div class="modal-body">
-      <form id="data-form">
-        <input type="hidden" id="item-id">
-        <div class="form-group"><label class="form-label">Plan Name <span class="required">*</span></label><input type="text" class="form-input" id="f-name" required></div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Price <span class="required">*</span></label><input type="number" class="form-input" id="f-price" step="0.01" required></div>
-          <div class="form-group"><label class="form-label">Billing Period <span class="required">*</span></label><select class="form-select" id="f-period"><option value="MONTHLY">Monthly</option><option value="YEARLY">Yearly</option><option value="WEEKLY">Weekly</option><option value="DAILY">Daily</option></select></div>
+      </header>
+      <main class="page-content">
+        <div class="page-header">
+          <h1 style="cursor: pointer;" onclick="window.location.reload()">Subscription Plans</h1>
+          <p class="text-muted">Manage recurring billing plans</p>
         </div>
-        <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="f-desc"></textarea></div>
-        <div style="display:flex;gap:20px;margin-top:10px">
-          <div class="form-check"><input type="checkbox" id="f-close" checked><label class="form-check-label">Closable</label></div>
-          <div class="form-check"><input type="checkbox" id="f-pause" checked><label class="form-check-label">Pausable</label></div>
+        <div class="card card-with-spark">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Plan Name</th>
+                  <th>Billing Period</th>
+                  <th>Price</th>
+                  <th>Closable/Pausable</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                <tr>
+                  <td colspan="5" class="table-empty">
+                    <div class="loading-spinner" style="margin:0 auto"></div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </form>
+      </main>
     </div>
-    <div class="modal-footer"><button class="btn btn-outline" onclick="Modal.hide('form-modal')">Cancel</button><button class="btn btn-primary" onclick="submitForm()">Save Plan</button></div>
   </div>
-</div>
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error('Unauthorized');
 
-async function loadData() {
-    try {
+  <div class="modal-overlay" id="form-modal">
+    <div class="modal form-with-spark">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">New Plan</div><button class="modal-close"
+          onclick="Modal.hide('form-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="data-form">
+          <input type="hidden" id="item-id">
+          <div class="form-group"><label class="form-label">Plan Name <span class="required">*</span></label><input
+              type="text" class="form-input" id="f-name" required></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Price <span class="required">*</span></label><input
+                type="number" class="form-input" id="f-price" step="0.01" required></div>
+            <div class="form-group"><label class="form-label">Billing Period <span
+                  class="required">*</span></label><select class="form-select" id="f-period">
+                <option value="MONTHLY">Monthly</option>
+                <option value="YEARLY">Yearly</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="DAILY">Daily</option>
+              </select></div>
+          </div>
+          <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea"
+              id="f-desc"></textarea></div>
+          <div style="display:flex;gap:20px;margin-top:10px">
+            <div class="form-check"><input type="checkbox" id="f-close" checked><label
+                class="form-check-label">Closable</label></div>
+            <div class="form-check"><input type="checkbox" id="f-pause" checked><label
+                class="form-check-label">Pausable</label></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline"
+          onclick="Modal.hide('form-modal')">Cancel</button><button class="btn btn-primary" onclick="submitForm()">Save
+          Plan</button></div>
+    </div>
+  </div>
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error('Unauthorized');
+
+    async function loadData() {
+      try {
         const res = await API.get('/plans');
         const tbody = document.getElementById('table-body');
         if (!res.data.length) return tbody.innerHTML = `<tr><td colspan="5" class="table-empty"><p>No plans found</p></td></tr>`;
@@ -63,51 +110,52 @@ async function loadData() {
                 <td><div class="fw-semibold">${item.name}</div><div style="font-size:12px;color:var(--text-muted)">${item.description || ''}</div></td>
                 <td><span class="badge" style="background:var(--accent-light);color:var(--accent-dark)">${item.billingPeriod}</span></td>
                 <td class="mono fw-bold text-primary">${fmt.currency(item.price)}</td>
-                <td>${item.closable?'✓ Closable':''} <br> ${item.pausable?'✓ Pausable':''}</td>
+                <td>${item.closable ? '✓ Closable' : ''} <br> ${item.pausable ? '✓ Pausable' : ''}</td>
                 <td><button class="btn btn-ghost btn-sm" onclick='editItem(${JSON.stringify(item).replace(/'/g, "&apos;")})'>Edit</button></td>
             </tr>
         `).join('');
-    } catch (err) { Toast.error(err.message); }
-}
+      } catch (err) { Toast.error(err.message); }
+    }
 
-function openModal() {
-    document.getElementById('data-form').reset();
-    document.getElementById('item-id').value = '';
-    document.getElementById('f-close').checked = true;
-    document.getElementById('f-pause').checked = true;
-    document.getElementById('modal-title').textContent = 'New Plan';
-    Modal.show('form-modal');
-}
+    function openModal() {
+      document.getElementById('data-form').reset();
+      document.getElementById('item-id').value = '';
+      document.getElementById('f-close').checked = true;
+      document.getElementById('f-pause').checked = true;
+      document.getElementById('modal-title').textContent = 'New Plan';
+      Modal.show('form-modal');
+    }
 
-function editItem(item) {
-    document.getElementById('item-id').value = item.id;
-    document.getElementById('f-name').value = item.name;
-    document.getElementById('f-period').value = item.billingPeriod;
-    document.getElementById('f-price').value = item.price;
-    document.getElementById('f-desc').value = item.description || '';
-    document.getElementById('f-close').checked = item.closable;
-    document.getElementById('f-pause').checked = item.pausable;
-    document.getElementById('modal-title').textContent = 'Edit Plan';
-    Modal.show('form-modal');
-}
+    function editItem(item) {
+      document.getElementById('item-id').value = item.id;
+      document.getElementById('f-name').value = item.name;
+      document.getElementById('f-period').value = item.billingPeriod;
+      document.getElementById('f-price').value = item.price;
+      document.getElementById('f-desc').value = item.description || '';
+      document.getElementById('f-close').checked = item.closable;
+      document.getElementById('f-pause').checked = item.pausable;
+      document.getElementById('modal-title').textContent = 'Edit Plan';
+      Modal.show('form-modal');
+    }
 
-async function submitForm() {
-    try {
+    async function submitForm() {
+      try {
         const id = document.getElementById('item-id').value;
         const payload = {
-            name: document.getElementById('f-name').value,
-            billingPeriod: document.getElementById('f-period').value,
-            price: parseFloat(document.getElementById('f-price').value),
-            description: document.getElementById('f-desc').value,
-            closable: document.getElementById('f-close').checked,
-            pausable: document.getElementById('f-pause').checked
+          name: document.getElementById('f-name').value,
+          billingPeriod: document.getElementById('f-period').value,
+          price: parseFloat(document.getElementById('f-price').value),
+          description: document.getElementById('f-desc').value,
+          closable: document.getElementById('f-close').checked,
+          pausable: document.getElementById('f-pause').checked
         };
-        if(id) await API.put(`/plans/${id}`, payload);
+        if (id) await API.put(`/plans/${id}`, payload);
         else await API.post('/plans', payload);
         Toast.success('Saved!'); Modal.hide('form-modal'); loadData();
-    } catch (e) { Toast.error(e.message); }
-}
-loadData();
-</script>
+      } catch (e) { Toast.error(e.message); }
+    }
+    loadData();
+  </script>
 </body>
+
 </html>

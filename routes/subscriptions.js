@@ -153,7 +153,7 @@ router.post('/request', requireAuth, async (req, res) => {
         const subscription = await prisma.subscription.create({
             data: {
                 subscriptionNumber: subNumber,
-                status: 'ACTIVE',
+                status: 'PENDING_ADMIN_APPROVAL',
                 customerId: req.user.id,
                 planId,
                 startDate: start,
@@ -164,13 +164,6 @@ router.post('/request', requireAuth, async (req, res) => {
             include: { customer: { select: { id: true, name: true, email: true } }, plan: true, lineItems: { include: { product: true } } }
         });
 
-        let generatedInvoice = null;
-        try {
-            generatedInvoice = await generateInvoiceForSubscription(subscription.id);
-        } catch (invErr) {
-            console.error('[SUBS] Instant Invoice generation failed:', invErr.message);
-        }
-
         // Notify all admins
         const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true } });
         const customer = await prisma.user.findUnique({ where: { id: req.user.id } });
@@ -178,10 +171,10 @@ router.post('/request', requireAuth, async (req, res) => {
         for (const admin of admins) {
             await createNotification({
                 userId: admin.id,
-                type: 'subscription_request',
-                title: 'New Auto-Subscription',
-                message: `${customer.name} started subscription ${subNumber}`,
-                link: `/subscriptions-detail.html?id=${subscription.id}`
+                type: 'approval_needed',
+                title: 'New Subscription Request',
+                message: `${customer.name} requested subscription ${subNumber}`,
+                link: `/pending-approval.html`
             });
             // Send email (non-blocking)
             sendAdminNewRequestEmail(admin.email, customer, subNumber).catch(err =>
@@ -192,18 +185,20 @@ router.post('/request', requireAuth, async (req, res) => {
         // Notify the requesting user
         await createNotification({
             userId: req.user.id,
-            type: 'approved',
-            title: 'Subscription Activated! 🎉',
-            message: `Your subscription ${subNumber} is active! Please complete your payment.`,
-            link: generatedInvoice ? `/invoices-detail.html?id=${generatedInvoice.id}` : `/subscriptions-detail.html?id=${subscription.id}`
+            type: 'info',
+            title: 'Request Submitted 🕒',
+            message: `Your subscription ${subNumber} is pending admin approval.`,
+            link: `/subscriptions-detail.html?id=${subscription.id}`
         });
-        sendSubscriptionActivatedEmail(customer, subNumber).catch(() => {});
+        
+        // Use the correct email function
+        sendSubscriptionRequestedEmail(customer, subNumber).catch(() => {});
 
         res.status(201).json({ 
             success: true, 
             data: subscription, 
-            invoiceId: generatedInvoice ? generatedInvoice.id : null, 
-            message: 'Subscription request submitted. Redirecting to payment...' 
+            invoiceId: null, 
+            message: 'Subscription request submitted and pending approval.' 
         });
     } catch (err) {
         console.error('[SUBS] Request error:', err);

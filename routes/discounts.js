@@ -123,7 +123,7 @@ router.post('/validate', requireAuth, async (req, res) => {
         if (discount.limitUsage && discount.currentUsage >= discount.limitUsage)
             return res.status(400).json({ success: false, error: 'Discount usage limit reached.' });
         if (discount.minPurchaseAmount && amount < discount.minPurchaseAmount)
-            return res.status(400).json({ success: false, error: `Minimum purchase of ₹${discount.minPurchaseAmount} required.` });
+            return res.status(400).json({ success: false, error: `Minimum purchase of $${discount.minPurchaseAmount} required.` });
         if (discount.minQuantity && quantity < discount.minQuantity)
             return res.status(400).json({ success: false, error: `Minimum quantity of ${discount.minQuantity} required.` });
 

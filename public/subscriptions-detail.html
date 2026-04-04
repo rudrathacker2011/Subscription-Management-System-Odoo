@@ -1,89 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Subscription Details — Revora</title>
-<link rel="stylesheet" href="/css/app.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subscription Details — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title">Subscription Details</div>
-      <div class="topbar-actions"><div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
-    </header>
-    <main class="page-content">
-      <div class="page-header page-header-row">
-        <div>
-          <h1 id="sub-number">Loading...</h1>
-          <p class="text-muted" id="sub-status"></p>
-        </div>
-        <div class="action-bar" id="action-bar" style="background:transparent;border:none;padding:0"></div>
-      </div>
-
-      <div class="detail-grid">
-        <div class="card" style="padding:24px">
-          <div class="detail-section">
-            <div class="detail-section-title">Customer Information</div>
-            <div class="detail-row"><div class="detail-label">Name</div><div class="detail-value" id="c-name"></div></div>
-            <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value" id="c-email"></div></div>
-            <div class="detail-row"><div class="detail-label">Company</div><div class="detail-value" id="c-company"></div></div>
-            <div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value" id="c-phone"></div></div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-title">Subscription Details</div>
-            <div class="detail-row"><div class="detail-label">Plan</div><div class="detail-value" id="c-plan"></div></div>
-            <div class="detail-row"><div class="detail-label">Billing Period</div><div class="detail-value" id="c-period"></div></div>
-            <div class="detail-row"><div class="detail-label">Start Date</div><div class="detail-value" id="c-start"></div></div>
-            <div class="detail-row"><div class="detail-label">Next Billing</div><div class="detail-value" id="c-next"></div></div>
-            <div class="detail-row" id="row-pause" style="display:none"><div class="detail-label">Paused</div><div class="detail-value text-warning fw-bold">YES</div></div>
-            <div class="detail-row" id="row-reject" style="display:none"><div class="detail-label">Rejection Reason</div><div class="detail-value text-danger" id="c-reject"></div></div>
-            <div class="detail-row" id="row-cancel" style="display:none"><div class="detail-label">Cancellation Reason</div><div class="detail-value text-muted" id="c-cancel"></div></div>
-          </div>
-          <div class="detail-section" id="section-appr" style="display:none">
-             <div class="detail-section-title">Approval Workflow</div>
-             <div class="detail-row"><div class="detail-label">Admin Approval</div><div class="detail-value" id="c-appr-admin"></div></div>
-             <div class="detail-row"><div class="detail-label">Staff Approval</div><div class="detail-value" id="c-appr-staff"></div></div>
-          </div>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:20px">
-          <div class="card">
-            <div class="card-header"><div class="card-title">Products</div></div>
-            <table class="line-items-table">
-              <thead><tr><th>Product</th><th class="text-right">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead>
-              <tbody id="line-items"></tbody>
-              <tfoot><tr><td colspan="3" class="text-right">Estimated Cycle Total:</td><td class="text-right text-primary mono fw-bold" id="c-total"></td></tr></tfoot>
-            </table>
-          </div>
-          
-          <div class="card">
-            <div class="card-header"><div class="card-title">Recent Invoices</div></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
-                <tbody id="invoices-list"></tbody>
-              </table>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Subscription Details</div>
+        <div class="topbar-actions">
+          <div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge"
+                id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body"></div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </header>
+      <main class="page-content">
+        <div class="page-header page-header-row">
+          <div>
+            <h1 id="sub-number" style="cursor: pointer;" onclick="window.location.reload()">Loading...</h1>
+            <p class="text-muted" id="sub-status"></p>
+          </div>
+          <div class="action-bar" id="action-bar" style="background:transparent;border:none;padding:0"></div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="card card-with-spark" style="padding:24px">
+            <div class="detail-section">
+              <div class="detail-section-title">Customer Information</div>
+              <div class="detail-row">
+                <div class="detail-label">Name</div>
+                <div class="detail-value" id="c-name"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Email</div>
+                <div class="detail-value" id="c-email"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Company</div>
+                <div class="detail-value" id="c-company"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Phone</div>
+                <div class="detail-value" id="c-phone"></div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-section-title">Subscription Details</div>
+              <div class="detail-row">
+                <div class="detail-label">Plan</div>
+                <div class="detail-value" id="c-plan"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Billing Period</div>
+                <div class="detail-value" id="c-period"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Start Date</div>
+                <div class="detail-value" id="c-start"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Next Billing</div>
+                <div class="detail-value" id="c-next"></div>
+              </div>
+              <div class="detail-row" id="row-pause" style="display:none">
+                <div class="detail-label">Paused</div>
+                <div class="detail-value text-warning fw-bold">YES</div>
+              </div>
+              <div class="detail-row" id="row-reject" style="display:none">
+                <div class="detail-label">Rejection Reason</div>
+                <div class="detail-value text-danger" id="c-reject"></div>
+              </div>
+              <div class="detail-row" id="row-cancel" style="display:none">
+                <div class="detail-label">Cancellation Reason</div>
+                <div class="detail-value text-muted" id="c-cancel"></div>
+              </div>
+            </div>
+            <div class="detail-section" id="section-appr" style="display:none">
+              <div class="detail-section-title">Approval Workflow</div>
+              <div class="detail-row">
+                <div class="detail-label">Admin Approval</div>
+                <div class="detail-value" id="c-appr-admin"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Staff Approval</div>
+                <div class="detail-value" id="c-appr-staff"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div class="card card-with-spark">
+              <div class="card-header">
+                <div class="card-title">Products</div>
+              </div>
+              <table class="line-items-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="line-items"></tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" class="text-right">Estimated Cycle Total:</td>
+                    <td class="text-right text-primary mono fw-bold" id="c-total"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div class="card card-with-spark">
+              <div class="card-header">
+                <div class="card-title">Recent Invoices</div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Invoice</th>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoices-list"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   </div>
-</div>
 
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth()) throw new Error('Unauthorized');
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error('Unauthorized');
 
-const urlParams = new URLSearchParams(window.location.search);
-const id = urlParams.get('id');
-if (!id) window.location.href = '/subscriptions.html';
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    if (!id) window.location.href = '/subscriptions.html';
 
-async function loadData() {
-    try {
+    async function loadData() {
+      try {
         const res = await API.get(`/subscriptions/${id}`);
         const sub = res.data;
 
@@ -102,24 +178,24 @@ async function loadData() {
 
         if (sub.isPaused) document.getElementById('row-pause').style.display = 'flex';
         if (sub.rejectionReason) {
-            document.getElementById('row-reject').style.display = 'flex';
-            document.getElementById('c-reject').textContent = sub.rejectionReason;
+          document.getElementById('row-reject').style.display = 'flex';
+          document.getElementById('c-reject').textContent = sub.rejectionReason;
         }
         if (sub.cancellationReason) {
-            document.getElementById('row-cancel').style.display = 'flex';
-            document.getElementById('c-cancel').textContent = sub.cancellationReason;
+          document.getElementById('row-cancel').style.display = 'flex';
+          document.getElementById('c-cancel').textContent = sub.cancellationReason;
         }
 
         if (sub.approvedByAdmin || sub.approvedByStaff) {
-            document.getElementById('section-appr').style.display = 'block';
-            document.getElementById('c-appr-admin').textContent = sub.approvedByAdmin ? `✅ ${sub.approvedByAdmin.name}` : 'Pending';
-            document.getElementById('c-appr-staff').textContent = sub.approvedByStaff ? `✅ ${sub.approvedByStaff.name}` : 'Pending';
+          document.getElementById('section-appr').style.display = 'block';
+          document.getElementById('c-appr-admin').textContent = sub.approvedByAdmin ? `✅ ${sub.approvedByAdmin.name}` : 'Pending';
+          document.getElementById('c-appr-staff').textContent = sub.approvedByStaff ? `✅ ${sub.approvedByStaff.name}` : 'Pending';
         }
 
         let total = 0;
         document.getElementById('line-items').innerHTML = sub.lineItems.map(li => {
-            total += li.lineTotal;
-            return `<tr>
+          total += li.lineTotal;
+          return `<tr>
                 <td><div class="fw-semibold">${li.product?.name || '—'}</div><div style="font-size:11px;color:var(--text-muted)">${li.variant?.value || ''}</div></td>
                 <td class="text-right">${li.quantity}</td>
                 <td class="text-right mono">${fmt.currency(li.unitPrice)}</td>
@@ -142,34 +218,35 @@ async function loadData() {
         const isInternal = Auth.isInternal();
 
         if (isInternal) {
-            if (['DRAFT', 'QUOTATION'].includes(sub.status)) {
-                actions.push(`<button class="btn btn-primary" onclick="confirmSub()">Confirm</button>`);
-            }
-            if (sub.status === 'CONFIRMED') {
-                actions.push(`<button class="btn btn-success" onclick="activateSub()">Activate</button>`);
-            }
-            if (sub.status === 'ACTIVE') {
-                actions.push(`<button class="btn btn-warning" onclick="pauseSub()">Pause</button>`);
-            }
-            if (sub.isPaused && sub.status === 'ACTIVE') {
-                actions.push(`<button class="btn btn-success" onclick="resumeSub()">Resume</button>`);
-            }
-            if (!['CLOSED', 'REJECTED'].includes(sub.status)) {
-                actions.push(`<button class="btn btn-danger" onclick="cancelSub()">Cancel</button>`);
-            }
+          if (['DRAFT', 'QUOTATION'].includes(sub.status)) {
+            actions.push(`<button class="btn btn-primary" onclick="confirmSub()">Confirm</button>`);
+          }
+          if (sub.status === 'CONFIRMED') {
+            actions.push(`<button class="btn btn-success" onclick="activateSub()">Activate</button>`);
+          }
+          if (sub.status === 'ACTIVE') {
+            actions.push(`<button class="btn btn-warning" onclick="pauseSub()">Pause</button>`);
+          }
+          if (sub.isPaused && sub.status === 'ACTIVE') {
+            actions.push(`<button class="btn btn-success" onclick="resumeSub()">Resume</button>`);
+          }
+          if (!['CLOSED', 'REJECTED'].includes(sub.status)) {
+            actions.push(`<button class="btn btn-danger" onclick="cancelSub()">Cancel</button>`);
+          }
         }
         document.getElementById('action-bar').innerHTML = actions.join('');
 
-    } catch (err) { Toast.error(err.message); }
-}
+      } catch (err) { Toast.error(err.message); }
+    }
 
-async function confirmSub() { if(await confirmDialog('Confirm Subscription', 'Confirm and generate first invoice?')) { await API.post(`/subscriptions/${id}/confirm`); Toast.success('Confirmed!'); loadData(); } }
-async function activateSub() { if(await confirmDialog('Activate', 'Activate this subscription?')) { await API.post(`/subscriptions/${id}/activate`); Toast.success('Activated!'); loadData(); } }
-async function pauseSub() { if(await confirmDialog('Pause', 'Pause billing?')) { await API.post(`/subscriptions/${id}/pause`); Toast.success('Paused!'); loadData(); } }
-async function resumeSub() { if(await confirmDialog('Resume', 'Resume billing?')) { await API.post(`/subscriptions/${id}/resume`); Toast.success('Resumed!'); loadData(); } }
-async function cancelSub() { if(await confirmDialog('Cancel', 'Permanently cancel subscription?')) { await API.post(`/subscriptions/${id}/cancel`, { reason: 'Cancelled manually' }); Toast.success('Cancelled!'); loadData(); } }
+    async function confirmSub() { if (await confirmDialog('Confirm Subscription', 'Confirm and generate first invoice?')) { await API.post(`/subscriptions/${id}/confirm`); Toast.success('Confirmed!'); loadData(); } }
+    async function activateSub() { if (await confirmDialog('Activate', 'Activate this subscription?')) { await API.post(`/subscriptions/${id}/activate`); Toast.success('Activated!'); loadData(); } }
+    async function pauseSub() { if (await confirmDialog('Pause', 'Pause billing?')) { await API.post(`/subscriptions/${id}/pause`); Toast.success('Paused!'); loadData(); } }
+    async function resumeSub() { if (await confirmDialog('Resume', 'Resume billing?')) { await API.post(`/subscriptions/${id}/resume`); Toast.success('Resumed!'); loadData(); } }
+    async function cancelSub() { if (await confirmDialog('Cancel', 'Permanently cancel subscription?')) { await API.post(`/subscriptions/${id}/cancel`, { reason: 'Cancelled manually' }); Toast.success('Cancelled!'); loadData(); } }
 
-loadData();
-</script>
+    loadData();
+  </script>
 </body>
+
 </html>

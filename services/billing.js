@@ -30,13 +30,13 @@ async function generateInvoiceForSubscription(subscriptionId) {
         include: {
             customer: true,
             plan: true,
-            lineItems: { include: { product: true, variant: true, discount: true } }
+            lineItems: { include: { product: true, variant: true, discount: true, taxes: { include: { tax: true } } } }
         }
     });
 
     if (!subscription) throw new Error(`Subscription ${subscriptionId} not found`);
 
-    let subtotal = 0, discountAmount = 0;
+    let subtotal = 0, discountAmount = 0, taxAmount = 0;
 
     const invoiceLineItems = subscription.lineItems.map(item => {
         const lineSubtotal = item.quantity * item.unitPrice;
@@ -46,20 +46,32 @@ async function generateInvoiceForSubscription(subscriptionId) {
                 ? lineSubtotal * (item.discount.value / 100)
                 : item.discount.value;
         }
+        
+        const lineAfterDiscount = lineSubtotal - lineDiscount;
+        let lineTax = 0;
+        if (item.taxes && item.taxes.length > 0) {
+            for (const t of item.taxes) {
+                if (t.tax && t.tax.isActive) {
+                    lineTax += lineAfterDiscount * (t.tax.rate / 100);
+                }
+            }
+        }
+
         subtotal += lineSubtotal;
         discountAmount += lineDiscount;
+        taxAmount += lineTax;
 
         return {
             productId: item.productId,
             description: `${item.product.name}${item.variant ? ` (${item.variant.value})` : ''}`,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            lineTotal: lineSubtotal - lineDiscount,
+            lineTotal: lineAfterDiscount + lineTax,
             discountId: item.discountId || null
         };
     });
 
-    const total = subtotal - discountAmount;
+    const total = subtotal - discountAmount + taxAmount;
 
     let invNumber;
     let unique = false;
@@ -79,7 +91,7 @@ async function generateInvoiceForSubscription(subscriptionId) {
             customerId: subscription.customerId,
             subscriptionId: subscription.id,
             status: 'CONFIRMED',
-            subtotal, taxAmount: 0, discountAmount, total,
+            subtotal, taxAmount, discountAmount, total,
             amountPaid: 0, amountDue: total,
             dueDate,
             lineItems: { create: invoiceLineItems }

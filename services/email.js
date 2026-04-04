@@ -126,8 +126,8 @@ async function sendOverdueInvoiceEmail(invoice, customer) {
             <p>Your invoice is overdue. Please settle it at your earliest convenience.</p>
             <div class="email-highlight">
                 <p><strong>Invoice:</strong> ${invoice.invoiceNumber}</p>
-                <p><strong>Amount Due:</strong> ₹${(invoice.amountDue || 0).toFixed(2)}</p>
-                <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</p>
+                <p><strong>Amount Due:</strong> $${(invoice.amountDue || 0).toFixed(2)}</p>
+                <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString('en-US')}</p>
             </div>
             <p style="text-align: center;">
                 <a href="${portalUrl}" class="email-btn">View Invoice</a>
@@ -148,7 +148,7 @@ async function sendRenewalReminderEmail(subscription, customer) {
             <div class="email-highlight">
                 <p><strong>Subscription:</strong> ${subscription.subscriptionNumber}</p>
                 <p><strong>Plan:</strong> ${subscription.plan?.name || 'N/A'}</p>
-                <p><strong>Next Billing Date:</strong> ${new Date(subscription.nextBillingDate).toLocaleDateString('en-IN')}</p>
+                <p><strong>Next Billing Date:</strong> ${new Date(subscription.nextBillingDate).toLocaleDateString('en-US')}</p>
             </div>
             <p>Log in to your portal to manage your subscription.</p>
         `
@@ -160,15 +160,15 @@ async function sendInvoiceEmail(invoice, customer) {
     const portalUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/invoices-detail.html?id=${invoice.id}`;
     await sendEmail({
         to: customer.email,
-        subject: `📄 Invoice ${invoice.invoiceNumber} — ₹${invoice.total.toFixed(2)}`,
+        subject: `📄 Invoice ${invoice.invoiceNumber} — $${invoice.total.toFixed(2)}`,
         html: `
             <h2>New Invoice</h2>
             <p>Dear <strong>${customer.name}</strong>,</p>
             <p>A new invoice has been generated for your account.</p>
             <div class="email-highlight">
                 <p><strong>Invoice:</strong> ${invoice.invoiceNumber}</p>
-                <p><strong>Total:</strong> ₹${invoice.total.toFixed(2)}</p>
-                <p><strong>Due Date:</strong> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-IN') : 'N/A'}</p>
+                <p><strong>Total:</strong> $${invoice.total.toFixed(2)}</p>
+                <p><strong>Due Date:</strong> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-US') : 'N/A'}</p>
             </div>
             <p style="text-align: center;">
                 <a href="${portalUrl}" class="email-btn">View & Pay Invoice</a>

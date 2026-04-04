@@ -12,7 +12,7 @@ router.get('/', requireAuth, async (req, res) => {
         if (search) productWhere.name = { contains: search, mode: 'insensitive' };
         if (type) productWhere.productType = type;
 
-        const [products, plans] = await Promise.all([
+        const [rawProducts, plans] = await Promise.all([
             prisma.product.findMany({
                 where: productWhere,
                 include: { variants: true },
@@ -23,9 +23,11 @@ router.get('/', requireAuth, async (req, res) => {
             })
         ]);
 
+        const uniqueProducts = Array.from(new Map(rawProducts.map(p => [p.name, p])).values());
+
         res.json({
             success: true,
-            data: { products, plans }
+            data: { products: uniqueProducts, plans }
         });
     } catch (error) {
         console.error('[CATALOG ERROR]', error);

@@ -1,89 +1,163 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invoice Details — Revora</title>
-<link rel="stylesheet" href="/css/app.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Details — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title">Invoice Details</div>
-      <div class="topbar-actions"><div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
-    </header>
-    <main class="page-content">
-      <div class="page-header page-header-row">
-        <div><h1 id="inv-number">Loading...</h1><p class="text-muted" id="inv-status"></p></div>
-        <div class="action-bar" id="action-bar" style="background:transparent;border:none;padding:0"></div>
-      </div>
-
-      <div class="detail-grid">
-        <div class="card" style="padding:24px">
-          <div class="detail-section">
-            <div class="detail-section-title">Customer</div>
-            <div class="detail-row"><div class="detail-label">Name</div><div class="detail-value" id="c-name"></div></div>
-            <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value" id="c-email"></div></div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-title">Invoice Details</div>
-            <div class="detail-row"><div class="detail-label">Subscription</div><div class="detail-value" id="c-sub"></div></div>
-            <div class="detail-row"><div class="detail-label">Date</div><div class="detail-value" id="c-date"></div></div>
-            <div class="detail-row"><div class="detail-label">Due Date</div><div class="detail-value" id="c-due"></div></div>
-            <div class="detail-row"><div class="detail-label">Subtotal</div><div class="detail-value mono" id="c-subtotal"></div></div>
-            <div class="detail-row"><div class="detail-label">Tax</div><div class="detail-value mono" id="c-tax"></div></div>
-            <div class="detail-row"><div class="detail-label">Total</div><div class="detail-value mono fw-bold text-primary" id="c-total"></div></div>
-            <div class="detail-row"><div class="detail-label">Amount Paid</div><div class="detail-value mono text-success" id="c-paid"></div></div>
-            <div class="detail-row"><div class="detail-label">Amount Due</div><div class="detail-value mono fw-bold text-danger" id="c-due-amt"></div></div>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Invoice Details</div>
+        <div class="topbar-actions">
+          <div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge"
+                id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body"></div>
+            </div>
           </div>
         </div>
-        
-        <div style="display:flex;flex-direction:column;gap:20px">
-          <div class="card">
-            <div class="card-header"><div class="card-title">Line Items</div></div>
-            <table class="line-items-table">
-              <thead><tr><th>Description</th><th class="text-right">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead>
-              <tbody id="line-items"></tbody>
-            </table>
+      </header>
+      <main class="page-content">
+        <div class="page-header page-header-row">
+          <div>
+            <h1 id="inv-number" style="cursor: pointer;" onclick="window.location.reload()">Loading...</h1>
+            <p class="text-muted" id="inv-status"></p>
           </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Payments</div></div>
-            <table class="line-items-table">
-              <thead><tr><th>Date</th><th>Method</th><th class="text-right">Amount</th></tr></thead>
-              <tbody id="payments-list"></tbody>
-            </table>
+          <div class="action-bar" id="action-bar" style="background:transparent;border:none;padding:0"></div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="card card-with-spark" style="padding:24px">
+            <div class="detail-section">
+              <div class="detail-section-title">Customer</div>
+              <div class="detail-row">
+                <div class="detail-label">Name</div>
+                <div class="detail-value" id="c-name"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Email</div>
+                <div class="detail-value" id="c-email"></div>
+              </div>
+            </div>
+            <div class="detail-section">
+              <div class="detail-section-title">Invoice Details</div>
+              <div class="detail-row">
+                <div class="detail-label">Subscription</div>
+                <div class="detail-value" id="c-sub"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Date</div>
+                <div class="detail-value" id="c-date"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Due Date</div>
+                <div class="detail-value" id="c-due"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Subtotal</div>
+                <div class="detail-value mono" id="c-subtotal"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Tax</div>
+                <div class="detail-value mono" id="c-tax"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Total</div>
+                <div class="detail-value mono fw-bold text-primary" id="c-total"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Amount Paid</div>
+                <div class="detail-value mono text-success" id="c-paid"></div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-label">Amount Due</div>
+                <div class="detail-value mono fw-bold text-danger" id="c-due-amt"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div class="card card-with-spark">
+              <div class="card-header">
+                <div class="card-title">Line Items</div>
+              </div>
+              <table class="line-items-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th class="text-right">Qty</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody id="line-items"></tbody>
+              </table>
+            </div>
+            <div class="card card-with-spark">
+              <div class="card-header">
+                <div class="card-title">Payments</div>
+              </div>
+              <table class="line-items-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Method</th>
+                    <th class="text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="payments-list"></tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
-  </div>
-</div>
-
-<div class="modal-overlay" id="payment-modal">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-header"><div class="modal-title">Record Payment</div><button class="modal-close" onclick="Modal.hide('payment-modal')">✕</button></div>
-    <div class="modal-body">
-      <div class="form-group"><label class="form-label">Amount</label><input type="number" id="pay-amount" class="form-input" step="0.01"></div>
-      <div class="form-group"><label class="form-label">Method</label><select id="pay-method" class="form-select"><option value="CARD">Card</option><option value="CASH">Cash</option><option value="BANK_TRANSFER">Bank Transfer</option><option value="UPI">UPI</option></select></div>
-      <div class="form-group"><label class="form-label">Reference (Optional)</label><input type="text" id="pay-ref" class="form-input"></div>
+      </main>
     </div>
-    <div class="modal-footer"><button class="btn btn-primary" onclick="submitPayment()">Record Payment</button></div>
   </div>
-</div>
 
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth()) throw new Error('Unauthorized');
-const urlParams = new URLSearchParams(window.location.search);
-const id = urlParams.get('id');
-if (!id) window.location.href = '/invoices.html';
+  <div class="modal-overlay" id="payment-modal">
+    <div class="modal form-with-spark" style="max-width:400px">
+      <div class="modal-header">
+        <div class="modal-title">Record Payment</div><button class="modal-close"
+          onclick="Modal.hide('payment-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Amount</label><input type="number" id="pay-amount"
+            class="form-input" step="0.01"></div>
+        <div class="form-group"><label class="form-label">Method</label><select id="pay-method" class="form-select">
+            <option value="CARD">Card</option>
+            <option value="CASH">Cash</option>
+            <option value="BANK_TRANSFER">Bank Transfer</option>
+            <option value="UPI">UPI</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Reference (Optional)</label><input type="text" id="pay-ref"
+            class="form-input"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-primary" onclick="submitPayment()">Record Payment</button></div>
+    </div>
+  </div>
 
-let currentDue = 0;
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error('Unauthorized');
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+    if (!id) window.location.href = '/invoices.html';
 
-async function loadData() {
-    try {
+    let currentDue = 0;
+
+    async function loadData() {
+      try {
         const res = await API.get(`/invoices/${id}`);
         const inv = res.data;
 
@@ -123,46 +197,47 @@ async function loadData() {
         // Actions
         const actions = [];
         if (Auth.isInternal()) {
-            if (inv.status === 'DRAFT') actions.push(`<button class="btn btn-primary" onclick="confirmInv()">Confirm Invoice</button>`);
-            if (inv.status === 'CONFIRMED' && inv.amountDue > 0) actions.push(`<button class="btn btn-success" onclick="openPayment()">Record Payment</button>`);
-            actions.push(`<button class="btn btn-outline" onclick="sendEmail()">📧 Send Email</button>`);
+          if (inv.status === 'DRAFT') actions.push(`<button class="btn btn-primary" onclick="confirmInv()">Confirm Invoice</button>`);
+          if (inv.status === 'CONFIRMED' && inv.amountDue > 0) actions.push(`<button class="btn btn-success" onclick="openPayment()">Record Payment</button>`);
+          actions.push(`<button class="btn btn-outline" onclick="sendEmail()">📧 Send Email</button>`);
         } else if (inv.status === 'CONFIRMED' && inv.amountDue > 0) {
-            actions.push(`<button class="btn btn-accent" onclick="openPayment()">Pay Now</button>`);
+          actions.push(`<button class="btn btn-accent" onclick="openPayment()">Pay Now</button>`);
         }
         document.getElementById('action-bar').innerHTML = actions.join('');
 
-    } catch (err) { Toast.error(err.message); }
-}
+      } catch (err) { Toast.error(err.message); }
+    }
 
-async function confirmInv() { if(await confirmDialog('Confirm', 'Confirm this invoice?')) { await API.post(`/invoices/${id}/confirm`); Toast.success('Confirmed!'); loadData(); } }
-async function sendEmail() { await API.post(`/invoices/${id}/send-email`); Toast.success('Email sent!'); }
-let paySelectUI;
-function openPayment() { 
-    document.getElementById('pay-amount').value = currentDue; 
-    Modal.show('payment-modal'); 
-    if (!paySelectUI) paySelectUI = UI.upgradeSelect('pay-method');
-}
+    async function confirmInv() { if (await confirmDialog('Confirm', 'Confirm this invoice?')) { await API.post(`/invoices/${id}/confirm`); Toast.success('Confirmed!'); loadData(); } }
+    async function sendEmail() { await API.post(`/invoices/${id}/send-email`); Toast.success('Email sent!'); }
+    let paySelectUI;
+    function openPayment() {
+      document.getElementById('pay-amount').value = currentDue;
+      Modal.show('payment-modal');
+      if (!paySelectUI) paySelectUI = UI.upgradeSelect('pay-method');
+    }
 
-async function submitPayment() {
-    const btn = document.querySelector('#payment-modal .btn-primary');
-    const orgHtml = btn.innerHTML;
-    try {
+    async function submitPayment() {
+      const btn = document.querySelector('#payment-modal .btn-primary');
+      const orgHtml = btn.innerHTML;
+      try {
         const amount = parseFloat(document.getElementById('pay-amount').value);
-        if(amount <= 0 || amount > currentDue) return Toast.error('Invalid amount');
-        
+        if (amount <= 0 || amount > currentDue) return Toast.error('Invalid amount');
+
         btn.disabled = true;
         btn.innerHTML = '<div class="loading-spinner-xs"></div> Recording...';
 
         await API.post(`/payments`, { invoiceId: id, amount, paymentMethod: document.getElementById('pay-method').value, referenceNumber: document.getElementById('pay-ref').value });
         Toast.success('Payment recorded!'); Modal.hide('payment-modal'); loadData();
-    } catch (e) { 
-        Toast.error(e.message); 
+      } catch (e) {
+        Toast.error(e.message);
         btn.disabled = false;
         btn.innerHTML = orgHtml;
+      }
     }
-}
 
-loadData();
-</script>
+    loadData();
+  </script>
 </body>
+
 </html>

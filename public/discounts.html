@@ -1,63 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discounts — Revora</title>
-<link rel="stylesheet" href="/css/app.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discounts — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title">Discounts</div>
-      <div class="topbar-actions"><button class="btn btn-primary" onclick="openModal()">+ New Discount</button><div style="position:relative;margin-left:8px"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
-    </header>
-    <main class="page-content">
-      <div class="page-header"><h1>Manage Discounts</h1><p class="text-muted">Promotion codes and automated discounts</p></div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Code</th><th>Name</th><th>Value</th><th>Usage/Limit</th><th>Status</th><th>Applies To</th><th>Actions</th></tr></thead>
-            <tbody id="table-body"><tr><td colspan="7" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
-          </table>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Discounts</div>
+        <div class="topbar-actions"><button class="btn btn-primary" onclick="openModal()">+ New Discount</button>
+          <div style="position:relative;margin-left:8px"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span
+                class="notif-badge" id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body"></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </main>
-  </div>
-</div>
-
-<div class="modal-overlay" id="form-modal">
-  <div class="modal modal-lg">
-    <div class="modal-header"><div class="modal-title" id="modal-title">New Discount</div><button class="modal-close" onclick="Modal.hide('form-modal')">✕</button></div>
-    <div class="modal-body">
-      <form id="data-form">
-        <input type="hidden" id="item-id">
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Discount Name <span class="required">*</span></label><input type="text" class="form-input" id="f-name" required></div>
-          <div class="form-group"><label class="form-label">Promo Code <span class="required">*</span></label><input type="text" class="form-input text-mono fw-bold" style="text-transform:uppercase" id="f-code" required></div>
+      </header>
+      <main class="page-content">
+        <div class="page-header">
+          <h1 style="cursor: pointer;" onclick="window.location.reload()">Manage Discounts</h1>
+          <p class="text-muted">Promotion codes and automated discounts</p>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Type <span class="required">*</span></label><select class="form-select" id="f-type"><option value="PERCENTAGE">Percentage (%)</option><option value="FIXED">Fixed Amount</option></select></div>
-          <div class="form-group"><label class="form-label">Value <span class="required">*</span></label><input type="number" class="form-input" id="f-value" step="0.01" required></div>
+        <div class="card card-with-spark">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Name</th>
+                  <th>Value</th>
+                  <th>Usage/Limit</th>
+                  <th>Status</th>
+                  <th>Applies To</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                <tr>
+                  <td colspan="7" class="table-empty">
+                    <div class="loading-spinner" style="margin:0 auto"></div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">Usage Limit (0 for unl.)</label><input type="number" class="form-input" id="f-limit" value="0"></div>
-          <div class="form-group"><label class="form-label">Applies To</label><select class="form-select" id="f-applies"><option value="BOTH">Both</option><option value="PRODUCTS">Products Only</option><option value="SUBSCRIPTIONS">Subscriptions Only</option></select></div>
-        </div>
-        <div class="form-check mt-1"><input type="checkbox" id="f-active" checked><label class="form-check-label">Is Active</label></div>
-      </form>
+      </main>
     </div>
-    <div class="modal-footer"><button class="btn btn-outline" onclick="Modal.hide('form-modal')">Cancel</button><button class="btn btn-primary" onclick="submitForm()">Save Discount</button></div>
   </div>
-</div>
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth(['ADMIN'])) throw new Error('Unauthorized');
 
-async function loadData() {
-    try {
+  <div class="modal-overlay" id="form-modal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">New Discount</div><button class="modal-close"
+          onclick="Modal.hide('form-modal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="data-form">
+          <input type="hidden" id="item-id">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Discount Name <span
+                  class="required">*</span></label><input type="text" class="form-input" id="f-name" required></div>
+            <div class="form-group"><label class="form-label">Promo Code <span class="required">*</span></label><input
+                type="text" class="form-input text-mono fw-bold" style="text-transform:uppercase" id="f-code" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Type <span class="required">*</span></label><select
+                class="form-select" id="f-type">
+                <option value="PERCENTAGE">Percentage (%)</option>
+                <option value="FIXED">Fixed Amount</option>
+              </select></div>
+            <div class="form-group"><label class="form-label">Value <span class="required">*</span></label><input
+                type="number" class="form-input" id="f-value" step="0.01" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Usage Limit (0 for unl.)</label><input type="number"
+                class="form-input" id="f-limit" value="0"></div>
+            <div class="form-group"><label class="form-label">Applies To</label><select class="form-select"
+                id="f-applies">
+                <option value="BOTH">Both</option>
+                <option value="PRODUCTS">Products Only</option>
+                <option value="SUBSCRIPTIONS">Subscriptions Only</option>
+              </select></div>
+          </div>
+          <div class="form-check mt-1"><input type="checkbox" id="f-active" checked><label class="form-check-label">Is
+              Active</label></div>
+        </form>
+      </div>
+      <div class="modal-footer"><button class="btn btn-outline"
+          onclick="Modal.hide('form-modal')">Cancel</button><button class="btn btn-primary" onclick="submitForm()">Save
+          Discount</button></div>
+    </div>
+  </div>
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth(['ADMIN'])) throw new Error('Unauthorized');
+
+    async function loadData() {
+      try {
         const res = await API.get('/discounts');
         const tbody = document.getElementById('table-body');
         if (!res.data.length) return tbody.innerHTML = `<tr><td colspan="7" class="table-empty"><p>No discounts found</p></td></tr>`;
@@ -72,48 +125,49 @@ async function loadData() {
                 <td><button class="btn btn-ghost btn-sm" onclick='editItem(${JSON.stringify(item).replace(/'/g, "&apos;")})'>Edit</button></td>
             </tr>
         `).join('');
-    } catch (err) { Toast.error(err.message); }
-}
+      } catch (err) { Toast.error(err.message); }
+    }
 
-function openModal() {
-    document.getElementById('data-form').reset();
-    document.getElementById('item-id').value = '';
-    document.getElementById('f-active').checked = true;
-    document.getElementById('modal-title').textContent = 'New Discount';
-    Modal.show('form-modal');
-}
+    function openModal() {
+      document.getElementById('data-form').reset();
+      document.getElementById('item-id').value = '';
+      document.getElementById('f-active').checked = true;
+      document.getElementById('modal-title').textContent = 'New Discount';
+      Modal.show('form-modal');
+    }
 
-function editItem(item) {
-    document.getElementById('item-id').value = item.id;
-    document.getElementById('f-name').value = item.name;
-    document.getElementById('f-code').value = item.code;
-    document.getElementById('f-type').value = item.discountType;
-    document.getElementById('f-value').value = item.value;
-    document.getElementById('f-limit').value = item.limitUsage || 0;
-    document.getElementById('f-applies').value = item.appliesTo;
-    document.getElementById('f-active').checked = item.isActive;
-    document.getElementById('modal-title').textContent = 'Edit Discount';
-    Modal.show('form-modal');
-}
+    function editItem(item) {
+      document.getElementById('item-id').value = item.id;
+      document.getElementById('f-name').value = item.name;
+      document.getElementById('f-code').value = item.code;
+      document.getElementById('f-type').value = item.discountType;
+      document.getElementById('f-value').value = item.value;
+      document.getElementById('f-limit').value = item.limitUsage || 0;
+      document.getElementById('f-applies').value = item.appliesTo;
+      document.getElementById('f-active').checked = item.isActive;
+      document.getElementById('modal-title').textContent = 'Edit Discount';
+      Modal.show('form-modal');
+    }
 
-async function submitForm() {
-    try {
+    async function submitForm() {
+      try {
         const id = document.getElementById('item-id').value;
         const payload = {
-            name: document.getElementById('f-name').value,
-            code: document.getElementById('f-code').value.toUpperCase(),
-            discountType: document.getElementById('f-type').value,
-            value: parseFloat(document.getElementById('f-value').value),
-            limitUsage: parseInt(document.getElementById('f-limit').value) || null,
-            appliesTo: document.getElementById('f-applies').value,
-            isActive: document.getElementById('f-active').checked
+          name: document.getElementById('f-name').value,
+          code: document.getElementById('f-code').value.toUpperCase(),
+          discountType: document.getElementById('f-type').value,
+          value: parseFloat(document.getElementById('f-value').value),
+          limitUsage: parseInt(document.getElementById('f-limit').value) || null,
+          appliesTo: document.getElementById('f-applies').value,
+          isActive: document.getElementById('f-active').checked
         };
-        if(id) await API.put(`/discounts/${id}`, payload);
+        if (id) await API.put(`/discounts/${id}`, payload);
         else await API.post('/discounts', payload);
         Toast.success('Saved!'); Modal.hide('form-modal'); loadData();
-    } catch (e) { Toast.error(e.message); }
-}
-loadData();
-</script>
+      } catch (e) { Toast.error(e.message); }
+    }
+    loadData();
+  </script>
 </body>
+
 </html>

@@ -40,7 +40,7 @@
       </header>
       <main class="page-content">
         <div class="page-header">
-          <h1 id="dashboard-title">Overview</h1>
+          <h1 id="dashboard-title" style="cursor: pointer;" onclick="window.location.reload()">Overview</h1>
           <p class="text-muted" id="dashboard-sub">Real-time subscription metrics</p>
         </div>
 
@@ -76,7 +76,7 @@
         </div>
 
         <div class="chart-grid">
-          <div class="card">
+          <div class="card card-with-spark">
             <div class="card-header">
               <div>
                 <div class="card-title">Revenue Trend</div>
@@ -87,7 +87,7 @@
               <div class="chart-wrapper"><canvas id="revenue-chart"></canvas></div>
             </div>
           </div>
-          <div class="card">
+          <div class="card card-with-spark">
             <div class="card-header">
               <div>
                 <div class="card-title">Subscription Status</div>
@@ -101,7 +101,7 @@
         </div>
 
         <div class="grid-2">
-          <div class="card" id="top-customers-card" style="display:none">
+          <div class="card card-with-spark" id="top-customers-card" style="display:none">
             <div class="card-header">
               <div class="card-title">Top Customers</div><a href="/reports.html" style="font-size:13px">View all →</a>
             </div>
@@ -118,7 +118,7 @@
               </table>
             </div>
           </div>
-          <div class="card" id="my-subs-card" style="display:none">
+          <div class="card card-with-spark" id="my-subs-card" style="display:none">
             <div class="card-header">
               <div class="card-title">My Subscriptions</div><a href="/subscriptions.html" style="font-size:13px">View
                 all →</a>
@@ -136,7 +136,7 @@
               </table>
             </div>
           </div>
-          <div class="card">
+          <div class="card card-with-spark">
             <div class="card-header">
               <div class="card-title">Recent Invoices</div><a href="/invoices.html" style="font-size:13px">View all
                 →</a>
@@ -186,12 +186,41 @@
         const ctx1 = document.getElementById('revenue-chart').getContext('2d');
         if (revenueChartInst) revenueChartInst.destroy();
         revenueChartInst = new Chart(ctx1, {
-          type: 'bar',
+          type: 'line',
           data: {
             labels: d.revenueChart.map(r => r.month),
-            datasets: [{ label: 'Revenue (₹)', data: d.revenueChart.map(r => r.revenue), backgroundColor: 'rgba(124,58,237,0.75)', borderRadius: 8, borderSkipped: false }]
+            datasets: [{ 
+              label: 'Revenue ($)', 
+              data: d.revenueChart.map(r => r.revenue), 
+              backgroundColor: 'rgba(139, 92, 246, 0.2)', 
+              borderColor: 'rgba(139, 92, 246, 1)', 
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#8B5CF6',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 5,
+              pointHoverRadius: 7
+            }]
           },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F0ECF5' }, ticks: { callback: v => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } }, x: { grid: { display: false } } } }
+          options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+              legend: { display: true, labels: { color: '#1F2937', font: { size: 14 } } }
+            }, 
+            scales: { 
+              y: { 
+                grid: { color: 'rgba(229, 231, 235, 0.3)', borderColor: '#9CA3AF' }, 
+                ticks: { color: '#4B5563', callback: v => '$' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } 
+              }, 
+              x: { 
+                grid: { color: 'rgba(229, 231, 235, 0.3)', borderColor: '#9CA3AF' }, 
+                ticks: { color: '#4B5563' } 
+              } 
+            } 
+          }
         });
 
         const ctx2 = document.getElementById('status-chart').getContext('2d');

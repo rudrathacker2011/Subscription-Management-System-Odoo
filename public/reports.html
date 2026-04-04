@@ -1,112 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reports — Revora</title>
-<link rel="stylesheet" href="/css/app.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title">Reports</div>
-      <div class="topbar-actions"><div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
-    </header>
-    <main class="page-content">
-      <div class="page-header page-header-row">
-        <div>
-          <h1>Revenue & Analytics</h1>
-          <p class="text-muted">Comprehensive business growth and subscription metrics</p>
-        </div>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Reports</div>
         <div class="topbar-actions">
-           <button class="btn btn-outline btn-sm" onclick="window.print()">📥 Export PDF</button>
-        </div>
-      </div>
-
-      <div class="kpi-grid" style="margin-bottom:32px">
-        <div class="kpi-card">
-          <div class="kpi-icon green">💸</div>
-          <div class="kpi-info">
-            <div class="kpi-value" id="s-mrr">₹0.00</div>
-            <div class="kpi-label">Monthly Recurring Revenue</div>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon blue">🔄</div>
-          <div class="kpi-info">
-            <div class="kpi-value" id="s-subs">0</div>
-            <div class="kpi-label">Active Subscriptions</div>
-          </div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-icon red">📉</div>
-          <div class="kpi-info">
-            <div class="kpi-value text-danger" id="s-unpaid">₹0.00</div>
-            <div class="kpi-label">Outstanding Balance</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid-2" style="margin-bottom:32px">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Revenue Growth</div>
-              <div class="card-subtitle">Last 6 months performance</div>
+          <div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge"
+                id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body"></div>
             </div>
           </div>
-          <div class="card-body">
-            <div style="height:320px"><canvas id="revenueChart"></canvas></div>
+        </div>
+      </header>
+      <main class="page-content">
+        <div class="page-header page-header-row">
+          <div>
+            <h1 style="cursor: pointer;" onclick="window.location.reload()">Revenue & Analytics</h1>
+            <p class="text-muted">Comprehensive business growth and subscription metrics</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="window.print()">📥 Export PDF</button>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Plan Distribution</div>
-              <div class="card-subtitle">Active subscriptions by package</div>
+
+        <div class="kpi-grid" style="margin-bottom:32px">
+          <div class="kpi-card">
+            <div class="kpi-icon green">💸</div>
+            <div class="kpi-info">
+              <div class="kpi-value" id="s-mrr">$0.00</div>
+              <div class="kpi-label">Monthly Recurring Revenue</div>
             </div>
           </div>
-          <div class="card-body">
-            <div style="height:320px"><canvas id="planChart"></canvas></div>
+          <div class="kpi-card">
+            <div class="kpi-icon blue">🔄</div>
+            <div class="kpi-info">
+              <div class="kpi-value" id="s-subs">0</div>
+              <div class="kpi-label">Active Subscriptions</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon red">📉</div>
+            <div class="kpi-info">
+              <div class="kpi-value text-danger" id="s-unpaid">$0.00</div>
+              <div class="kpi-label">Outstanding Balance</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-header">
-           <div class="card-title">Top Producing Plans</div>
+        <div class="grid-2" style="margin-bottom:32px">
+          <div class="card card-with-spark">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Revenue Growth</div>
+                <div class="card-subtitle">Last 6 months performance</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="height:320px"><canvas id="revenueChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card card-with-spark">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Plan Distribution</div>
+                <div class="card-subtitle">Active subscriptions by package</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div style="height:320px"><canvas id="planChart"></canvas></div>
+            </div>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Plan Name</th>
-                <th>Subscribers</th>
-                <th>Market Share</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="plan-breakdown-body">
-               <tr><td colspan="4" class="table-empty">Loading breakdown...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-    </main>
+        <div class="card card-with-spark">
+          <div class="card-header">
+            <div class="card-title">Top Producing Plans</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Plan Name</th>
+                  <th>Subscribers</th>
+                  <th>Market Share</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="plan-breakdown-body">
+                <tr>
+                  <td colspan="4" class="table-empty">Loading breakdown...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
   </div>
-</div>
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error('Unauthorized');
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error('Unauthorized');
 
-let revChart, pChart;
+    let revChart, pChart;
 
-async function loadData() {
-    try {
+    async function loadData() {
+      try {
         const res = await API.get('/reports/stats');
         const stats = res.data;
 
@@ -138,57 +154,58 @@ async function loadData() {
         // Revenue Chart
         if (revChart) revChart.destroy();
         revChart = new Chart(document.getElementById('revenueChart'), {
-            type: 'bar',
-            data: {
-                labels: stats.revenueSixMonths.map(d => d.month),
-                datasets: [{
-                    label: 'Monthly Revenue',
-                    data: stats.revenueSixMonths.map(d => d.revenue),
-                    backgroundColor: 'rgba(124, 58, 237, 0.85)',
-                    hoverBackgroundColor: '#7C3AED',
-                    borderRadius: 8,
-                    borderSkipped: false,
-                }]
-            },
-            options: { 
-              responsive: true, 
-              maintainAspectRatio: false,
-              plugins: { legend: { display:false }, tooltip: { padding: 12, backgroundColor: '#1E1033' } }, 
-              scales: { 
-                y: { beginAtZero:true, grid:{color:'#F0ECF5', drawBorder:false}, ticks: { font: { family:'JetBrains Mono', size:11 } } }, 
-                x: { grid:{display:false}, ticks: { font: { weight: 600 } } } 
-              } 
+          type: 'bar',
+          data: {
+            labels: stats.revenueSixMonths.map(d => d.month),
+            datasets: [{
+              label: 'Monthly Revenue',
+              data: stats.revenueSixMonths.map(d => d.revenue),
+              backgroundColor: 'rgba(124, 58, 237, 0.85)',
+              hoverBackgroundColor: '#7C3AED',
+              borderRadius: 8,
+              borderSkipped: false,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { padding: 12, backgroundColor: '#1E1033' } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: '#F0ECF5', drawBorder: false }, ticks: { font: { family: 'JetBrains Mono', size: 11 } } },
+              x: { grid: { display: false }, ticks: { font: { weight: 600 } } }
             }
+          }
         });
 
         // Plan Chart
         if (pChart) pChart.destroy();
         pChart = new Chart(document.getElementById('planChart'), {
-            type: 'doughnut',
-            data: {
-                labels: stats.subsByPlan.map(d => d.planName),
-                datasets: [{
-                    data: stats.subsByPlan.map(d => d.count),
-                    backgroundColor: ['#7C3AED', '#F59E0B', '#10B981', '#3B82F6', '#EF4444'],
-                    borderWidth: 4,
-                    borderColor: '#ffffff',
-                    hoverOffset: 15
-                }]
-            },
-            options: { 
-              responsive: true, 
-              maintainAspectRatio: false,
-              cutout: '72%', 
-              plugins: { 
-                legend: { position:'bottom', labels: { padding: 20, usePointStyle: true, font: { size:12, weight:500 } } } 
-              } 
+          type: 'doughnut',
+          data: {
+            labels: stats.subsByPlan.map(d => d.planName),
+            datasets: [{
+              data: stats.subsByPlan.map(d => d.count),
+              backgroundColor: ['#7C3AED', '#F59E0B', '#10B981', '#3B82F6', '#EF4444'],
+              borderWidth: 4,
+              borderColor: '#ffffff',
+              hoverOffset: 15
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+              legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, font: { size: 12, weight: 500 } } }
             }
+          }
         });
 
-    } catch (err) { Toast.error(err.message); }
-}
+      } catch (err) { Toast.error(err.message); }
+    }
 
-loadData();
-</script>
+    loadData();
+  </script>
 </body>
+
 </html>
