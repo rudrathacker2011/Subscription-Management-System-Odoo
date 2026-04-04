@@ -7,6 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const prisma = require('./lib/prisma');
 const { startCronJobs } = require('./services/cron');
+const { verifyConnection: verifyEmail } = require('./services/email');
 
 // --- ROUTES ---
 const authRoutes = require('./routes/auth');
@@ -20,6 +21,8 @@ const discountRoutes = require('./routes/discounts');
 const taxRoutes = require('./routes/taxes');
 const userRoutes = require('./routes/users');
 const reportRoutes = require('./routes/reports');
+const catalogRoutes = require('./routes/catalog');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -60,8 +63,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- API ROUTES ---
+app.use('/api/auth/login', loginLimiter); // Rate limit BEFORE route mount
 app.use('/api/auth', authRoutes);
-app.use('/api/auth/login', loginLimiter);
 app.use('/api/products', productRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
@@ -72,10 +75,12 @@ app.use('/api/discounts', discountRoutes);
 app.use('/api/taxes', taxRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/catalog', catalogRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // --- HEALTH CHECK ---
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', service: 'SubsManager API', version: '1.0.0', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', service: 'Revora API', version: '2.0.0', timestamp: new Date().toISOString() });
 });
 
 
@@ -114,10 +119,12 @@ const connectDB = async (retries = 5, delay = 3000) => {
     }
 };
 
-connectDB().then(() => {
+connectDB().then(async () => {
+    // Verify email connection (non-blocking)
+    verifyEmail().catch(() => {});
+
     app.listen(PORT, () => {
-        console.log(`🚀 [SubsManager] Server running at http://localhost:${PORT}`);
+        console.log(`🚀 [Revora] Server running at http://localhost:${PORT}`);
         startCronJobs();
     });
 });
-

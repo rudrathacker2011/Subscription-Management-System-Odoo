@@ -2,121 +2,101 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join the Mission - Ignite 2026</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome for symbols -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
 </head>
 
 <body>
-    <div class="container" style="max-width: 480px;">
-        <h2>Deploy Your Profile</h2>
-        <form id="register-form">
-            <div class="form-group">
-                <label for="name">Full Name</label>
-                <input type="text" id="name" placeholder="John Doe" required>
-            </div>
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" placeholder="john@enterprise.com" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Security Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
-                
-                <!-- 🛡️ PASSWORD STRENGTH SCORECARD -->
-                <div class="password-requirements" id="requirements">
-                    <div class="requirement" id="req-length"><i class="fa-solid fa-circle-dot"></i> 8+ Characters</div>
-                    <div class="requirement" id="req-upper"><i class="fa-solid fa-circle-dot"></i> Uppercase Letter</div>
-                    <div class="requirement" id="req-lower"><i class="fa-solid fa-circle-dot"></i> Lowercase Letter</div>
-                    <div class="requirement" id="req-number"><i class="fa-solid fa-circle-dot"></i> A Number</div>
-                    <div class="requirement" id="req-special"><i class="fa-solid fa-circle-dot"></i> Special (!@#$%^&*)</div>
-                </div>
-            </div>
-            <div class="form-group secret-field">
-                <label for="adminSecret">Admin Access Code (Optional)</label>
-                <input type="password" id="adminSecret" placeholder="For system architects only">
-            </div>
-            <button type="submit" id="btn-submit">Initialize Account</button>
-            <p class="error" id="error-message"></p>
-        </form>
-        <p class="switch-link">Part of the squad already? <a href="/index.html">Access Terminal</a></p>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-icon">R</div>
+        <h1>Create Account</h1>
+        <p>Join Revora and manage your subscriptions</p>
+      </div>
+      <div class="auth-error" id="reg-error" style="display:none"></div>
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="name" placeholder="John Doe" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-input" id="email" placeholder="you@company.com" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-input" id="password" placeholder="••••••••" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <input type="password" class="form-input" id="confirmPassword" placeholder="••••••••" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input type="tel" class="form-input" id="phone" placeholder="+91-9876543210">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company</label>
+            <input type="text" class="form-input" id="company" placeholder="Your Company">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:12px"
+          id="btn-register">Create Account →</button>
+      </form>
+      <div class="auth-footer">
+        Already have an account? <a href="/login.html">Sign In</a>
+      </div>
     </div>
+  </div>
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (Auth.isLoggedIn()) location.href = '/dashboard.html';
 
-    <script>
-        const passwordInput = document.getElementById('password');
-        const requirements = {
-            length: document.getElementById('req-length'),
-            upper: document.getElementById('req-upper'),
-            lower: document.getElementById('req-lower'),
-            number: document.getElementById('req-number'),
-            special: document.getElementById('req-special'),
-        };
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const phone = document.getElementById('phone').value;
+      const companyName = document.getElementById('company').value;
+      const errEl = document.getElementById('reg-error');
+      const btn = document.getElementById('btn-register');
 
-        const validate = () => {
-            const val = passwordInput.value;
-            
-            const checks = {
-                length: val.length >= 8,
-                upper: /[A-Z]/.test(val),
-                lower: /[a-z]/.test(val),
-                number: /[0-9]/.test(val),
-                special: /[!@#$%^&*]/.test(val),
-            };
+      errEl.style.display = 'none';
 
-            for (const key in checks) {
-                if (checks[key]) {
-                    requirements[key].classList.add('valid');
-                    requirements[key].querySelector('i').className = 'fa-solid fa-circle-check';
-                } else {
-                    requirements[key].classList.remove('valid');
-                    requirements[key].querySelector('i').className = 'fa-solid fa-circle-dot';
-                }
-            }
-            return Object.values(checks).every(v => v);
-        };
+      if (password !== confirmPassword) {
+        errEl.textContent = 'Passwords do not match.';
+        errEl.style.display = 'flex';
+        return;
+      }
 
-        passwordInput.addEventListener('input', validate);
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
 
-        document.getElementById('register-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            if (!validate()) {
-                document.getElementById('error-message').textContent = 'Follow the security scorecard first.';
-                return;
-            }
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const password = passwordInput.value;
-            const adminSecret = document.getElementById('adminSecret').value;
-            const errorP = document.getElementById('error-message');
-
-            try {
-                const res = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password, adminSecret })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    location.assign('/dashboard.html');
-                } else {
-                    errorP.textContent = data.error || 'Interface error. Please retry.';
-                }
-            } catch (err) {
-                console.error(err);
-                errorP.textContent = 'Critical system error. Check console.';
-            }
-        });
-    </script>
+      try {
+        const res = await API.post('/auth/register', { name, email, password, phone, companyName });
+        if (res.accessToken && res.user) {
+          Auth.setSession(res.accessToken, res.user);
+          window.location.href = '/dashboard.html';
+        } else {
+          throw new Error(res.error || 'Registration failed');
+        }
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'flex';
+        btn.disabled = false;
+        btn.textContent = 'Create Account →';
+      }
+    });
+  </script>
 </body>
 
 </html>

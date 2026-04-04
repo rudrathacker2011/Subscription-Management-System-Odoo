@@ -236,4 +236,85 @@ router.get('/customers/top', requireAuth, requireRole(['ADMIN', 'INTERNAL']), as
     }
 });
 
+// GET /api/reports/stats (For Reports Page)
+router.get('/stats', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, res) => {
+    try {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const [
+            activeCount,
+            unpaidAgg,
+            planBreakdown,
+            payments
+        ] = await Promise.all([
+            prisma.subscription.count({ where: { status: 'ACTIVE' } }),
+            prisma.invoice.aggregate({
+                where: { status: { in: ['DRAFT', 'CONFIRMED'] } },
+                _sum: { amountDue: true }
+            }),
+            prisma.subscription.groupBy({
+                by: ['planId'],
+                where: { status: 'ACTIVE' },
+                _count: { planId: true }
+            }),
+            prisma.payment.findMany({
+                where: { paymentDate: { gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) } },
+                select: { amount: true, paymentDate: true }
+            })
+        ]);
+
+        // MRR
+        const activeSubs = await prisma.subscription.findMany({
+            where: { status: 'ACTIVE' },
+            include: { plan: { select: { price: true, billingPeriod: true } } }
+        });
+        const mrr = activeSubs.reduce((sum, s) => {
+            const p = s.plan?.price || 0;
+            const period = s.plan?.billingPeriod;
+            if (period === 'MONTHLY') return sum + p;
+            if (period === 'YEARLY') return sum + p / 12;
+            if (period === 'WEEKLY') return sum + p * 4.33;
+            if (period === 'DAILY') return sum + p * 30;
+            return sum + p;
+        }, 0);
+
+        // Revenue over 6 months
+        const revenueSixMonths = [];
+        for (let i = 5; i >= 0; i--) {
+            const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+            const monthlySum = payments
+                .filter(p => p.paymentDate >= mStart && p.paymentDate <= mEnd)
+                .reduce((sum, p) => sum + p.amount, 0);
+            
+            revenueSixMonths.push({
+                month: mStart.toLocaleString('default', { month: 'short' }),
+                revenue: monthlySum
+            });
+        }
+
+        // Plan breakdown names
+        const plans = await prisma.recurringPlan.findMany({ select: { id: true, name: true } });
+        const subsByPlan = planBreakdown.map(pb => ({
+            planName: plans.find(p => p.id === pb.planId)?.name || 'Unknown',
+            count: pb._count.planId
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                mrr: Math.round(mrr),
+                activeSubscriptions: activeCount,
+                unpaidAmount: unpaidAgg._sum.amountDue || 0,
+                revenueSixMonths,
+                subsByPlan
+            }
+        });
+    } catch (err) {
+        console.error('[REPORTS] Stats error:', err);
+        res.status(500).json({ success: false, error: 'Failed to load report stats.' });
+    }
+});
+
 module.exports = router;

@@ -31,6 +31,7 @@ router.get('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, res
 
         res.json({ success: true, data: users, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } });
     } catch (err) {
+        console.error('[USERS] Fetch error:', err);
         res.status(500).json({ success: false, error: 'Failed to fetch users.' });
     }
 });

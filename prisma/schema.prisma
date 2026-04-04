@@ -31,9 +31,34 @@ model User {
   createdSubscriptions Subscription[] @relation("CreatedBySubscriptions")
   invoices             Invoice[]
   payments             Payment[]
+  notifications        Notification[]
+
+  // Approval tracking
+  adminApprovedSubscriptions Subscription[] @relation("AdminApprover")
+  staffApprovedSubscriptions Subscription[] @relation("StaffApprover")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// NOTIFICATION
+// ============================================================
+model Notification {
+  id        String   @id @default(uuid())
+  type      String   // subscription_request, approval_needed, approved, rejected, invoice, payment
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
 }
 
 // ============================================================
@@ -175,13 +200,16 @@ model QuotationTemplateLineItem {
 model Subscription {
   id                 String    @id @default(uuid())
   subscriptionNumber String    @unique
-  status             String    @default("DRAFT") // DRAFT, QUOTATION, CONFIRMED, ACTIVE, CLOSED
+  // DRAFT, QUOTATION, CONFIRMED, ACTIVE, CLOSED
+  // NEW: PENDING_ADMIN_APPROVAL, PENDING_STAFF_APPROVAL, APPROVED, REJECTED
+  status             String    @default("DRAFT")
   isPaused           Boolean   @default(false)
   startDate          DateTime
   expirationDate     DateTime?
   nextBillingDate    DateTime?
   paymentTerms       String    @default("NET_30")
   cancellationReason String?
+  rejectionReason    String?
 
   customer   User   @relation("CustomerSubscriptions", fields: [customerId], references: [id])
   customerId String
@@ -191,6 +219,15 @@ model Subscription {
 
   createdBy   User?   @relation("CreatedBySubscriptions", fields: [createdById], references: [id])
   createdById String?
+
+  // Approval tracking
+  approvedByAdmin   User?     @relation("AdminApprover", fields: [approvedByAdminId], references: [id])
+  approvedByAdminId String?
+  adminApprovedAt   DateTime?
+
+  approvedByStaff   User?     @relation("StaffApprover", fields: [approvedByStaffId], references: [id])
+  approvedByStaffId String?
+  staffApprovedAt   DateTime?
 
   lineItems SubscriptionLineItem[]
   invoices  Invoice[]

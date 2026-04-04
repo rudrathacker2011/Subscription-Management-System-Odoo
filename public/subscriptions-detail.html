@@ -2,248 +2,174 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Subscription Detail — SubsManager</title>
+<title>Subscription Details — Revora</title>
 <link rel="stylesheet" href="/css/app.css">
-<style>
-.status-timeline { display:flex;align-items:center;gap:0;margin:20px 0;overflow-x:auto;padding-bottom:8px; }
-.timeline-step { display:flex;flex-direction:column;align-items:center;flex:1;min-width:80px; }
-.timeline-dot { width:28px;height:28px;border-radius:50%;border:3px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;transition:all 0.2s;z-index:1; }
-.timeline-dot.done { background:var(--success);border-color:var(--success);color:white; }
-.timeline-dot.active { background:var(--primary);border-color:var(--primary);color:white;box-shadow:0 0 0 4px var(--primary-glow); }
-.timeline-label { font-size:10.5px;font-weight:600;color:var(--text-muted);margin-top:6px;text-align:center; }
-.timeline-connector { flex:1;height:3px;background:var(--border);margin-top:-22px; }
-.timeline-connector.done { background:var(--success); }
-@media print { .sidebar,.topbar,.action-bar,.btn,.pagination { display:none!important; } .main-content { margin:0!important; } }
-</style>
 </head>
 <body>
 <div class="app-layout">
-<aside id="sidebar" class="sidebar"></aside>
-<div class="main-content">
-<header class="topbar">
-  <div style="display:flex;align-items:center;gap:12px">
-    <a href="/subscriptions.html" class="btn btn-ghost btn-sm">← Back</a>
-    <div class="topbar-title" id="page-title">Subscription Detail</div>
-  </div>
-</header>
-<div class="action-bar" id="action-bar"></div>
-<main class="page-content">
-  <div id="loading" class="loading-center"><div class="loading-spinner"></div></div>
-  <div id="content" style="display:none">
-
-    <!-- Status Timeline -->
-    <div class="card mb-2" style="margin-bottom:20px">
-      <div class="card-body" style="padding:20px 22px">
-        <div class="status-timeline" id="timeline"></div>
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">Subscription Details</div>
+      <div class="topbar-actions"><div style="position:relative"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
+    </header>
+    <main class="page-content">
+      <div class="page-header page-header-row">
+        <div>
+          <h1 id="sub-number">Loading...</h1>
+          <p class="text-muted" id="sub-status"></p>
+        </div>
+        <div class="action-bar" id="action-bar" style="background:transparent;border:none;padding:0"></div>
       </div>
-    </div>
 
-    <div class="detail-grid">
-      <!-- Left: Details + Line Items + Invoices -->
-      <div>
-        <div class="card mb-2" style="margin-bottom:20px">
-          <div class="card-header"><div class="card-title" id="sub-number"></div><div id="sub-status-badge"></div></div>
-          <div class="card-body">
-            <div class="detail-section">
-              <div class="detail-section-title">Subscription Info</div>
-              <div class="detail-row"><span class="detail-label">Customer</span><span class="detail-value" id="d-customer"></span></div>
-              <div class="detail-row"><span class="detail-label">Plan</span><span class="detail-value" id="d-plan"></span></div>
-              <div class="detail-row"><span class="detail-label">Billing Period</span><span class="detail-value" id="d-billing"></span></div>
-              <div class="detail-row"><span class="detail-label">Start Date</span><span class="detail-value" id="d-start"></span></div>
-              <div class="detail-row"><span class="detail-label">Next Billing</span><span class="detail-value" id="d-next-billing"></span></div>
-              <div class="detail-row"><span class="detail-label">Expiry Date</span><span class="detail-value" id="d-expiry"></span></div>
-              <div class="detail-row"><span class="detail-label">Payment Terms</span><span class="detail-value" id="d-terms"></span></div>
-              <div class="detail-row" id="cancel-row" style="display:none"><span class="detail-label">Cancel Reason</span><span class="detail-value text-danger" id="d-cancel-reason"></span></div>
+      <div class="detail-grid">
+        <div class="card" style="padding:24px">
+          <div class="detail-section">
+            <div class="detail-section-title">Customer Information</div>
+            <div class="detail-row"><div class="detail-label">Name</div><div class="detail-value" id="c-name"></div></div>
+            <div class="detail-row"><div class="detail-label">Email</div><div class="detail-value" id="c-email"></div></div>
+            <div class="detail-row"><div class="detail-label">Company</div><div class="detail-value" id="c-company"></div></div>
+            <div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value" id="c-phone"></div></div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title">Subscription Details</div>
+            <div class="detail-row"><div class="detail-label">Plan</div><div class="detail-value" id="c-plan"></div></div>
+            <div class="detail-row"><div class="detail-label">Billing Period</div><div class="detail-value" id="c-period"></div></div>
+            <div class="detail-row"><div class="detail-label">Start Date</div><div class="detail-value" id="c-start"></div></div>
+            <div class="detail-row"><div class="detail-label">Next Billing</div><div class="detail-value" id="c-next"></div></div>
+            <div class="detail-row" id="row-pause" style="display:none"><div class="detail-label">Paused</div><div class="detail-value text-warning fw-bold">YES</div></div>
+            <div class="detail-row" id="row-reject" style="display:none"><div class="detail-label">Rejection Reason</div><div class="detail-value text-danger" id="c-reject"></div></div>
+            <div class="detail-row" id="row-cancel" style="display:none"><div class="detail-label">Cancellation Reason</div><div class="detail-value text-muted" id="c-cancel"></div></div>
+          </div>
+          <div class="detail-section" id="section-appr" style="display:none">
+             <div class="detail-section-title">Approval Workflow</div>
+             <div class="detail-row"><div class="detail-label">Admin Approval</div><div class="detail-value" id="c-appr-admin"></div></div>
+             <div class="detail-row"><div class="detail-label">Staff Approval</div><div class="detail-value" id="c-appr-staff"></div></div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Products</div></div>
+            <table class="line-items-table">
+              <thead><tr><th>Product</th><th class="text-right">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead>
+              <tbody id="line-items"></tbody>
+              <tfoot><tr><td colspan="3" class="text-right">Estimated Cycle Total:</td><td class="text-right text-primary mono fw-bold" id="c-total"></td></tr></tfoot>
+            </table>
+          </div>
+          
+          <div class="card">
+            <div class="card-header"><div class="card-title">Recent Invoices</div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Invoice</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody id="invoices-list"></tbody>
+              </table>
             </div>
           </div>
         </div>
-
-        <!-- Line Items -->
-        <div class="card mb-2" style="margin-bottom:20px">
-          <div class="card-header"><div class="card-title">Order Lines</div></div>
-          <div class="table-wrap">
-            <table class="line-items-table">
-              <thead><tr><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-              <tbody id="line-items-body"></tbody>
-              <tfoot id="line-items-foot"></tfoot>
-            </table>
-          </div>
-        </div>
-
-        <!-- Invoices -->
-        <div class="card">
-          <div class="card-header"><div class="card-title">Invoices</div><a href="/invoices.html" style="font-size:13px">View all →</a></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Invoice #</th><th>Date</th><th>Total</th><th>Paid</th><th>Status</th><th></th></tr></thead>
-              <tbody id="invoices-body"></tbody>
-            </table>
-          </div>
-        </div>
       </div>
-
-      <!-- Right: Summary + Created By -->
-      <div>
-        <div class="card mb-2" style="margin-bottom:20px">
-          <div class="card-header"><div class="card-title">Summary</div></div>
-          <div class="card-body">
-            <div class="detail-row"><span class="detail-label">Total Invoices</span><span class="detail-value" id="d-inv-count">—</span></div>
-            <div class="detail-row"><span class="detail-label">Total Paid</span><span class="detail-value text-success" id="d-total-paid">—</span></div>
-            <div class="detail-row"><span class="detail-label">Outstanding</span><span class="detail-value text-danger" id="d-outstanding">—</span></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Metadata</div></div>
-          <div class="card-body">
-            <div class="detail-row"><span class="detail-label">Created</span><span class="detail-value" id="d-created"></span></div>
-            <div class="detail-row"><span class="detail-label">Updated</span><span class="detail-value" id="d-updated"></span></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </main>
   </div>
-</main>
-</div>
-</div>
-
-<!-- Cancel Modal -->
-<div id="cancel-modal" class="modal-overlay">
-<div class="modal" style="max-width:440px">
-  <div class="modal-header"><div class="modal-title">Cancel Subscription</div><button class="modal-close">✕</button></div>
-  <div class="modal-body">
-    <div class="confirm-icon">⚠️</div>
-    <div class="confirm-title">Cancel Subscription?</div>
-    <div class="confirm-message" style="margin-bottom:16px">This will stop all future billing. This action cannot be undone.</div>
-    <div class="form-group"><label class="form-label">Cancellation Reason</label><textarea id="cancel-reason" class="form-textarea" placeholder="Optional reason..."></textarea></div>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-outline" onclick="Modal.hide('cancel-modal')">Keep Subscription</button>
-    <button class="btn btn-danger" onclick="doCancel()">Cancel Subscription</button>
-  </div>
-</div>
 </div>
 
 <div id="toast-container"></div>
 <script src="/js/app.js"></script>
 <script>
-if (!requireAuth()) throw new Error();
-const urlId = new URLSearchParams(location.search).get('id');
-if (!urlId) { Toast.error('No subscription ID'); setTimeout(() => location.href = '/subscriptions.html', 1500); }
+if (!requireAuth()) throw new Error('Unauthorized');
 
-let sub;
+const urlParams = new URLSearchParams(window.location.search);
+const id = urlParams.get('id');
+if (!id) window.location.href = '/subscriptions.html';
 
-const STATUSES = ['DRAFT','QUOTATION','CONFIRMED','ACTIVE','CLOSED'];
+async function loadData() {
+    try {
+        const res = await API.get(`/subscriptions/${id}`);
+        const sub = res.data;
 
-async function load() {
-  try {
-    const res = await API.get('/subscriptions/' + urlId);
-    sub = res.data;
-    renderPage();
-  } catch (err) { Toast.error(err.message); }
+        document.getElementById('sub-number').textContent = sub.subscriptionNumber;
+        document.getElementById('sub-status').innerHTML = fmt.badge(sub.isPaused ? 'PAUSED' : sub.status);
+
+        document.getElementById('c-name').textContent = sub.customer.name;
+        document.getElementById('c-email').textContent = sub.customer.email;
+        document.getElementById('c-company').textContent = sub.customer.companyName || '—';
+        document.getElementById('c-phone').textContent = sub.customer.phone || '—';
+
+        document.getElementById('c-plan').textContent = sub.plan.name;
+        document.getElementById('c-period').textContent = sub.plan.billingPeriod;
+        document.getElementById('c-start').textContent = fmt.date(sub.startDate);
+        document.getElementById('c-next').textContent = fmt.date(sub.nextBillingDate);
+
+        if (sub.isPaused) document.getElementById('row-pause').style.display = 'flex';
+        if (sub.rejectionReason) {
+            document.getElementById('row-reject').style.display = 'flex';
+            document.getElementById('c-reject').textContent = sub.rejectionReason;
+        }
+        if (sub.cancellationReason) {
+            document.getElementById('row-cancel').style.display = 'flex';
+            document.getElementById('c-cancel').textContent = sub.cancellationReason;
+        }
+
+        if (sub.approvedByAdmin || sub.approvedByStaff) {
+            document.getElementById('section-appr').style.display = 'block';
+            document.getElementById('c-appr-admin').textContent = sub.approvedByAdmin ? `✅ ${sub.approvedByAdmin.name}` : 'Pending';
+            document.getElementById('c-appr-staff').textContent = sub.approvedByStaff ? `✅ ${sub.approvedByStaff.name}` : 'Pending';
+        }
+
+        let total = 0;
+        document.getElementById('line-items').innerHTML = sub.lineItems.map(li => {
+            total += li.lineTotal;
+            return `<tr>
+                <td><div class="fw-semibold">${li.product?.name || '—'}</div><div style="font-size:11px;color:var(--text-muted)">${li.variant?.value || ''}</div></td>
+                <td class="text-right">${li.quantity}</td>
+                <td class="text-right mono">${fmt.currency(li.unitPrice)}</td>
+                <td class="text-right mono fw-bold">${fmt.currency(li.lineTotal)}</td>
+            </tr>`;
+        }).join('');
+        document.getElementById('c-total').textContent = fmt.currency(total);
+
+        document.getElementById('invoices-list').innerHTML = sub.invoices.length ? sub.invoices.map(inv => `
+            <tr>
+                <td><a href="/invoices-detail.html?id=${inv.id}" class="mono fw-semibold">${inv.invoiceNumber}</a></td>
+                <td>${fmt.date(inv.invoiceDate)}</td>
+                <td class="mono">${fmt.currency(inv.total)}</td>
+                <td>${fmt.badge(inv.status)}</td>
+            </tr>
+        `).join('') : `<tr><td colspan="4" class="table-empty">No invoices generated yet.</td></tr>`;
+
+        // Actions
+        const actions = [];
+        const isInternal = Auth.isInternal();
+
+        if (isInternal) {
+            if (['DRAFT', 'QUOTATION'].includes(sub.status)) {
+                actions.push(`<button class="btn btn-primary" onclick="confirmSub()">Confirm</button>`);
+            }
+            if (sub.status === 'CONFIRMED') {
+                actions.push(`<button class="btn btn-success" onclick="activateSub()">Activate</button>`);
+            }
+            if (sub.status === 'ACTIVE') {
+                actions.push(`<button class="btn btn-warning" onclick="pauseSub()">Pause</button>`);
+            }
+            if (sub.isPaused && sub.status === 'ACTIVE') {
+                actions.push(`<button class="btn btn-success" onclick="resumeSub()">Resume</button>`);
+            }
+            if (!['CLOSED', 'REJECTED'].includes(sub.status)) {
+                actions.push(`<button class="btn btn-danger" onclick="cancelSub()">Cancel</button>`);
+            }
+        }
+        document.getElementById('action-bar').innerHTML = actions.join('');
+
+    } catch (err) { Toast.error(err.message); }
 }
 
-function renderPage() {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('content').style.display = '';
+async function confirmSub() { if(await confirmDialog('Confirm Subscription', 'Confirm and generate first invoice?')) { await API.post(`/subscriptions/${id}/confirm`); Toast.success('Confirmed!'); loadData(); } }
+async function activateSub() { if(await confirmDialog('Activate', 'Activate this subscription?')) { await API.post(`/subscriptions/${id}/activate`); Toast.success('Activated!'); loadData(); } }
+async function pauseSub() { if(await confirmDialog('Pause', 'Pause billing?')) { await API.post(`/subscriptions/${id}/pause`); Toast.success('Paused!'); loadData(); } }
+async function resumeSub() { if(await confirmDialog('Resume', 'Resume billing?')) { await API.post(`/subscriptions/${id}/resume`); Toast.success('Resumed!'); loadData(); } }
+async function cancelSub() { if(await confirmDialog('Cancel', 'Permanently cancel subscription?')) { await API.post(`/subscriptions/${id}/cancel`, { reason: 'Cancelled manually' }); Toast.success('Cancelled!'); loadData(); } }
 
-  document.getElementById('page-title').textContent = sub.subscriptionNumber;
-  document.getElementById('sub-number').textContent = sub.subscriptionNumber;
-  document.getElementById('sub-status-badge').innerHTML = sub.isPaused ? fmt.badge('PAUSED') : fmt.badge(sub.status);
-
-  // Timeline
-  const currentIdx = STATUSES.indexOf(sub.status);
-  const timelineEl = document.getElementById('timeline');
-  timelineEl.innerHTML = STATUSES.map((s, i) => {
-    const isDone = i < currentIdx, isCurrent = i === currentIdx;
-    let html = `<div class="timeline-step"><div class="timeline-dot ${isDone ? 'done' : isCurrent ? 'active' : ''}">${isDone ? '✓' : i+1}</div><div class="timeline-label">${s}</div></div>`;
-    if (i < STATUSES.length - 1) html += `<div class="timeline-connector ${i < currentIdx ? 'done' : ''}"></div>`;
-    return html;
-  }).join('');
-
-  // Details
-  document.getElementById('d-customer').innerHTML = `<strong>${sub.customer?.name}</strong><br><span style="font-size:12px;color:var(--text-muted)">${sub.customer?.email}</span>`;
-  document.getElementById('d-plan').textContent = sub.plan?.name || '—';
-  document.getElementById('d-billing').textContent = sub.plan?.billingPeriod || '—';
-  document.getElementById('d-start').textContent = fmt.date(sub.startDate);
-  document.getElementById('d-next-billing').textContent = fmt.date(sub.nextBillingDate);
-  document.getElementById('d-expiry').textContent = sub.expirationDate ? fmt.date(sub.expirationDate) : 'No expiry';
-  document.getElementById('d-terms').textContent = sub.paymentTerms;
-  if (sub.cancellationReason) {
-    document.getElementById('cancel-row').style.display = '';
-    document.getElementById('d-cancel-reason').textContent = sub.cancellationReason;
-  }
-  document.getElementById('d-created').textContent = fmt.dateTime(sub.createdAt);
-  document.getElementById('d-updated').textContent = fmt.dateTime(sub.updatedAt);
-
-  // Line Items
-  const lineItems = sub.lineItems || [];
-  const subtotal = lineItems.reduce((s, i) => s + i.lineTotal, 0);
-  document.getElementById('line-items-body').innerHTML = lineItems.length
-    ? lineItems.map(li => `<tr>
-        <td><div style="font-weight:600">${li.product?.name || '—'}</div>${li.variant ? `<div style="font-size:12px;color:var(--text-muted)">${li.variant.attribute}: ${li.variant.value}</div>` : ''}</td>
-        <td>${li.quantity}</td>
-        <td class="text-mono">${fmt.currency(li.unitPrice)}</td>
-        <td class="text-mono fw-semibold">${fmt.currency(li.lineTotal)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="4" class="table-empty"><p>No line items</p></td></tr>';
-  document.getElementById('line-items-foot').innerHTML = `<tr><td colspan="3" style="text-align:right;padding:12px 12px;font-weight:700">Subtotal</td><td class="text-mono" style="padding:12px;font-weight:700">${fmt.currency(subtotal)}</td></tr>`;
-
-  // Invoices
-  const invoices = sub.invoices || [];
-  const totalPaid = invoices.filter(i => i.status === 'PAID').reduce((s, i) => s + i.total, 0);
-  const outstanding = invoices.filter(i => i.status !== 'PAID' && i.status !== 'CANCELLED').reduce((s, i) => s + i.amountDue, 0);
-  document.getElementById('d-inv-count').textContent = invoices.length;
-  document.getElementById('d-total-paid').textContent = fmt.currency(totalPaid);
-  document.getElementById('d-outstanding').textContent = fmt.currency(outstanding);
-
-  document.getElementById('invoices-body').innerHTML = invoices.length
-    ? invoices.map(inv => `<tr>
-        <td><a href="/invoices-detail.html?id=${inv.id}" class="text-mono">${inv.invoiceNumber}</a></td>
-        <td style="font-size:12.5px">${fmt.date(inv.invoiceDate)}</td>
-        <td class="text-mono">${fmt.currency(inv.total)}</td>
-        <td class="text-mono text-success">${fmt.currency(inv.amountPaid)}</td>
-        <td>${fmt.badge(inv.status)}</td>
-        <td><a href="/invoices-detail.html?id=${inv.id}" class="btn btn-ghost btn-xs">→</a></td>
-      </tr>`).join('')
-    : '<tr><td colspan="6" class="table-empty"><p>No invoices generated yet</p></td></tr>';
-
-  // Action Bar
-  renderActions();
-}
-
-function renderActions() {
-  if (!Auth.isInternal()) { document.getElementById('action-bar').innerHTML = ''; return; }
-  const isAdmin = Auth.isAdmin();
-  let btns = '';
-  if (sub.status === 'DRAFT') btns += `<button class="btn btn-outline btn-sm" onclick="doTransition('confirm')">✅ Confirm</button>`;
-  if (sub.status === 'DRAFT' || sub.status === 'QUOTATION') btns += `<button class="btn btn-outline btn-sm" onclick="doTransition('confirm')">✅ Confirm</button>`;
-  if (sub.status === 'CONFIRMED') btns += `<button class="btn btn-primary btn-sm" onclick="doTransition('activate')">▶ Activate</button>`;
-  if (sub.status === 'ACTIVE' && !sub.isPaused) btns += `<button class="btn btn-warning btn-sm" onclick="doTransition('pause')">⏸ Pause</button>`;
-  if (sub.isPaused) btns += `<button class="btn btn-success btn-sm" onclick="doTransition('resume')">▶ Resume</button>`;
-  if (!['CLOSED'].includes(sub.status)) btns += `<button class="btn btn-danger btn-sm" onclick="Modal.show('cancel-modal')">✕ Cancel</button>`;
-  if (['DRAFT','QUOTATION'].includes(sub.status)) btns = `<a href="/subscriptions-new.html?id=${urlId}" class="btn btn-outline btn-sm">✏️ Edit</a>` + btns;
-  document.getElementById('action-bar').innerHTML = btns;
-}
-
-async function doTransition(action) {
-  try {
-    await API.post(`/subscriptions/${urlId}/${action}`);
-    Toast.success(`Subscription ${action}d successfully!`);
-    load();
-  } catch (err) { Toast.error(err.message); }
-}
-
-async function doCancel() {
-  const reason = document.getElementById('cancel-reason').value.trim();
-  try {
-    await API.post(`/subscriptions/${urlId}/cancel`, { reason });
-    Modal.hide('cancel-modal');
-    Toast.success('Subscription cancelled.');
-    load();
-  } catch (err) { Toast.error(err.message); }
-}
-
-load();
+loadData();
 </script>
 </body>
 </html>

@@ -1,12 +1,7 @@
 const cron = require('node-cron');
 const { runBillingCycle, closeExpiredSubscriptions } = require('./billing');
 const prisma = require('../lib/prisma');
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_FROM, pass: process.env.EMAIL_PASSWORD }
-});
+const { sendRenewalReminderEmail, sendOverdueInvoiceEmail } = require('./email');
 
 function startCronJobs() {
     console.log('🕐 [CRON] Starting scheduled jobs...');
@@ -47,12 +42,7 @@ function startCronJobs() {
 
             for (const sub of subscriptions) {
                 try {
-                    await transporter.sendMail({
-                        from: process.env.EMAIL_FROM,
-                        to: sub.customer.email,
-                        subject: `🔔 Renewal Reminder — ${sub.subscriptionNumber}`,
-                        html: `<p>Hi ${sub.customer.name},</p><p>Your subscription <strong>${sub.subscriptionNumber}</strong> (${sub.plan.name}) will renew in 7 days on <strong>${new Date(sub.nextBillingDate).toLocaleDateString()}</strong>.</p><p>Log in to your portal to manage your subscription.</p>`
-                    });
+                    await sendRenewalReminderEmail(sub, sub.customer);
                 } catch (mailErr) {
                     console.error(`❌ [CRON] Reminder email failed for ${sub.subscriptionNumber}:`, mailErr.message);
                 }
@@ -74,12 +64,7 @@ function startCronJobs() {
 
             for (const inv of overdue) {
                 try {
-                    await transporter.sendMail({
-                        from: process.env.EMAIL_FROM,
-                        to: inv.customer.email,
-                        subject: `⚠️ Overdue Invoice ${inv.invoiceNumber}`,
-                        html: `<p>Hi ${inv.customer.name},</p><p>Invoice <strong>${inv.invoiceNumber}</strong> of <strong>₹${inv.amountDue.toFixed(2)}</strong> is overdue since ${new Date(inv.dueDate).toLocaleDateString()}.</p><p>Please log in to settle this at your earliest convenience.</p>`
-                    });
+                    await sendOverdueInvoiceEmail(inv, inv.customer);
                 } catch (mailErr) {
                     console.error(`❌ [CRON] Overdue email failed for ${inv.invoiceNumber}:`, mailErr.message);
                 }

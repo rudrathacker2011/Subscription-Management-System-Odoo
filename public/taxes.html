@@ -2,96 +2,103 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Taxes — SubsManager</title>
+<title>Taxes — Revora</title>
 <link rel="stylesheet" href="/css/app.css">
 </head>
 <body>
 <div class="app-layout">
-<aside id="sidebar" class="sidebar"></aside>
-<div class="main-content">
-<header class="topbar"><div class="topbar-title">Tax Configuration</div></header>
-<main class="page-content">
-<div class="page-header-row">
-  <div class="page-header"><h1>Taxes</h1><p>Configure GST, VAT, and other tax rates</p></div>
-  <button class="btn btn-primary" onclick="openCreate()" id="create-btn">+ New Tax</button>
-</div>
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Tax Name</th><th>Type</th><th>Rate (%)</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody id="tax-table"><tr><td colspan="6" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
-    </table>
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main-content">
+    <header class="topbar">
+      <div class="topbar-title">Taxes</div>
+      <div class="topbar-actions"><button class="btn btn-primary" onclick="openModal()">+ New Tax</button><div style="position:relative;margin-left:8px"><button class="topbar-icon-btn" id="notif-bell-btn">🔔<span class="notif-badge" id="notif-count" style="display:none">0</span></button><div class="notif-dropdown" id="notif-dropdown"><div class="notif-dropdown-header"><h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all read</button></div><div class="notif-dropdown-body" id="notif-dropdown-body"></div></div></div></div>
+    </header>
+    <main class="page-content">
+      <div class="page-header"><h1>Tax Configurations</h1><p class="text-muted">Manage GST, VAT, and custom tax rules</p></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tax Name</th><th>Type</th><th>Percentage</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="table-body"><tr><td colspan="5" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
   </div>
 </div>
-</main>
-</div>
-</div>
 
-<div id="tax-modal" class="modal-overlay">
-<div class="modal" style="max-width:480px">
-  <div class="modal-header"><div class="modal-title" id="modal-title">New Tax</div><button class="modal-close">✕</button></div>
-  <div class="modal-body">
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Tax Name <span class="required">*</span></label><input type="text" id="tx-name" class="form-input" placeholder="e.g., GST 18%"></div>
-      <div class="form-group"><label class="form-label">Tax Type</label>
-        <select id="tx-type" class="form-select"><option value="GST">GST</option><option value="VAT">VAT</option><option value="SERVICE_TAX">Service Tax</option><option value="CUSTOM">Custom</option></select></div>
+<div class="modal-overlay" id="form-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-title">New Tax</div><button class="modal-close" onclick="Modal.hide('form-modal')">✕</button></div>
+    <div class="modal-body">
+      <form id="data-form">
+        <input type="hidden" id="item-id">
+        <div class="form-group"><label class="form-label">Name <span class="required">*</span></label><input type="text" class="form-input" id="f-name" required placeholder="e.g. IGST 18%"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Type <span class="required">*</span></label><select class="form-select" id="f-type"><option value="GST">GST</option><option value="VAT">VAT</option><option value="SALES_TAX">Sales Tax</option><option value="CUSTOM">Custom</option></select></div>
+          <div class="form-group"><label class="form-label">Percentage (%) <span class="required">*</span></label><input type="number" class="form-input" id="f-percent" step="0.01" required></div>
+        </div>
+        <div class="form-check mt-1"><input type="checkbox" id="f-active" checked><label class="form-check-label">Is Active</label></div>
+      </form>
     </div>
-    <div class="form-group"><label class="form-label">Percentage (%) <span class="required">*</span></label><input type="number" id="tx-pct" class="form-input" placeholder="e.g., 18" min="0" max="100" step="0.01"></div>
-    <div class="form-group"><label class="form-label">Description</label><textarea id="tx-desc" class="form-textarea" placeholder="Optional description..."></textarea></div>
-    <label class="form-check"><input type="checkbox" id="tx-active" checked><span class="form-check-label">Is Active</span></label>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-outline" onclick="Modal.hide('tax-modal')">Cancel</button>
-    <button class="btn btn-primary" onclick="saveTax()">Save Tax</button>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="Modal.hide('form-modal')">Cancel</button><button class="btn btn-primary" onclick="submitForm()">Save Tax</button></div>
   </div>
 </div>
-</div>
-
 <div id="toast-container"></div>
 <script src="/js/app.js"></script>
 <script>
-if (!requireAuth(['ADMIN','INTERNAL'])) throw new Error();
-let editId = null;
-document.addEventListener('DOMContentLoaded', loadTaxes);
+if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error('Unauthorized');
 
-async function loadTaxes() {
-  const tbody = document.getElementById('tax-table');
-  try {
-    const res = await API.get('/taxes');
-    if (!res.data.length) { tbody.innerHTML = '<tr><td colspan="6" class="table-empty"><div class="empty-icon">💰</div><p>No taxes configured</p></td></tr>'; return; }
-    tbody.innerHTML = res.data.map(t => `
-      <tr>
-        <td><div style="font-weight:700">${t.name}</div></td>
-        <td><span class="tag">${t.taxType}</span></td>
-        <td class="text-mono fw-bold" style="font-size:16px">${t.percentage}%</td>
-        <td style="font-size:13px;color:var(--text-secondary)">${t.description||'—'}</td>
-        <td>${fmt.badge(t.isActive ? 'ACTIVE' : 'CLOSED')}</td>
-        <td><div style="display:flex;gap:6px">
-          <button class="btn btn-outline btn-xs" onclick="openEdit(${JSON.stringify(t).replace(/"/g,'&quot;')})">Edit</button>
-          ${Auth.isAdmin() ? `<button class="btn btn-danger btn-xs" onclick="deleteTax('${t.id}','${t.name.replace(/'/g,"\\'")}')">Delete</button>` : ''}
-        </div></td>
-      </tr>`).join('');
-  } catch (err) { Toast.error(err.message); }
+async function loadData() {
+    try {
+        const res = await API.get('/taxes');
+        const tbody = document.getElementById('table-body');
+        if (!res.data.length) return tbody.innerHTML = `<tr><td colspan="5" class="table-empty"><p>No taxes found</p></td></tr>`;
+        tbody.innerHTML = res.data.map(item => `
+            <tr>
+                <td><div class="fw-semibold">${item.name}</div></td>
+                <td><span class="badge" style="background:var(--primary-light);color:var(--primary)">${item.taxType}</span></td>
+                <td class="mono fw-bold">${item.percentage}%</td>
+                <td>${item.isActive ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>'}</td>
+                <td><button class="btn btn-ghost btn-sm" onclick='editItem(${JSON.stringify(item).replace(/'/g, "&apos;")})'>Edit</button></td>
+            </tr>
+        `).join('');
+    } catch (err) { Toast.error(err.message); }
 }
 
-function openCreate() { editId=null; document.getElementById('modal-title').textContent='New Tax'; ['tx-name','tx-desc'].forEach(id=>document.getElementById(id).value=''); document.getElementById('tx-pct').value=''; document.getElementById('tx-type').value='GST'; document.getElementById('tx-active').checked=true; Modal.show('tax-modal'); }
-function openEdit(t) { editId=t.id; document.getElementById('modal-title').textContent='Edit Tax'; document.getElementById('tx-name').value=t.name; document.getElementById('tx-type').value=t.taxType; document.getElementById('tx-pct').value=t.percentage; document.getElementById('tx-desc').value=t.description||''; document.getElementById('tx-active').checked=t.isActive; Modal.show('tax-modal'); }
-
-async function saveTax() {
-  const payload = { name: document.getElementById('tx-name').value.trim(), taxType: document.getElementById('tx-type').value, percentage: parseFloat(document.getElementById('tx-pct').value), description: document.getElementById('tx-desc').value.trim(), isActive: document.getElementById('tx-active').checked };
-  if (!payload.name || !payload.percentage) { Toast.warning('Name and percentage are required.'); return; }
-  try {
-    if (editId) { await API.put('/taxes/'+editId, payload); Toast.success('Tax updated!'); }
-    else { await API.post('/taxes', payload); Toast.success('Tax created!'); }
-    Modal.hide('tax-modal'); loadTaxes();
-  } catch (err) { Toast.error(err.message); }
+function openModal() {
+    document.getElementById('data-form').reset();
+    document.getElementById('item-id').value = '';
+    document.getElementById('f-active').checked = true;
+    document.getElementById('modal-title').textContent = 'New Tax';
+    Modal.show('form-modal');
 }
 
-async function deleteTax(id, name) {
-  const ok = await confirmDialog('Delete Tax', `Delete tax "${name}"?`);
-  if (!ok) return;
-  try { await API.delete('/taxes/'+id); Toast.success('Tax deleted.'); loadTaxes(); } catch (err) { Toast.error(err.message); }
+function editItem(item) {
+    document.getElementById('item-id').value = item.id;
+    document.getElementById('f-name').value = item.name;
+    document.getElementById('f-type').value = item.taxType;
+    document.getElementById('f-percent').value = item.percentage;
+    document.getElementById('f-active').checked = item.isActive;
+    document.getElementById('modal-title').textContent = 'Edit Tax';
+    Modal.show('form-modal');
 }
+
+async function submitForm() {
+    try {
+        const id = document.getElementById('item-id').value;
+        const payload = {
+            name: document.getElementById('f-name').value,
+            taxType: document.getElementById('f-type').value,
+            percentage: parseFloat(document.getElementById('f-percent').value),
+            isActive: document.getElementById('f-active').checked
+        };
+        if(id) await API.put(`/taxes/${id}`, payload);
+        else await API.post('/taxes', payload);
+        Toast.success('Saved!'); Modal.hide('form-modal'); loadData();
+    } catch (e) { Toast.error(e.message); }
+}
+loadData();
 </script>
 </body>
 </html>

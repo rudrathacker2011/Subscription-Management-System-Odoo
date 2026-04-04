@@ -1,172 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — SubsManager</title>
-<link rel="stylesheet" href="/css/app.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Revora</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
-<div class="app-layout">
-  <aside id="sidebar" class="sidebar"></aside>
-  <div class="main-content">
-    <header class="topbar">
-      <div class="topbar-title" id="page-title">Dashboard</div>
-      <div class="topbar-search">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" placeholder="Search subscriptions, invoices...">
-      </div>
-      <div class="topbar-actions">
-        <button class="topbar-icon-btn" title="Notifications">
-          🔔<span class="notif-dot"></span>
-        </button>
-      </div>
-    </header>
-    <main class="page-content">
-      <div class="page-header">
-        <h1 id="dashboard-title">Overview</h1>
-        <p class="text-muted" id="dashboard-sub">Real-time subscription metrics</p>
-      </div>
-
-      <!-- KPI Cards -->
-      <div class="kpi-grid" id="kpi-grid">
-        <div class="kpi-card"><div class="kpi-icon blue">🔄</div><div class="kpi-info"><div class="kpi-value skeleton" style="width:80px;height:32px"></div><div class="kpi-label">Active Subscriptions</div></div></div>
-        <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-info"><div class="kpi-value skeleton" style="width:80px;height:32px"></div><div class="kpi-label">Monthly Revenue (MRR)</div></div></div>
-        <div class="kpi-card"><div class="kpi-icon purple">💳</div><div class="kpi-info"><div class="kpi-value skeleton" style="width:80px;height:32px"></div><div class="kpi-label">Payments This Month</div></div></div>
-        <div class="kpi-card"><div class="kpi-icon red">⚠️</div><div class="kpi-info"><div class="kpi-value skeleton" style="width:80px;height:32px"></div><div class="kpi-label">Overdue Invoices</div></div></div>
-      </div>
-
-      <!-- Charts -->
-      <div class="chart-grid">
-        <div class="card">
-          <div class="card-header"><div><div class="card-title">Revenue Trend</div><div class="card-subtitle">Last 6 months</div></div></div>
-          <div class="card-body"><div class="chart-wrapper"><canvas id="revenue-chart"></canvas></div></div>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
+    <div class="main-content">
+      <header class="topbar">
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-search">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input type="text" placeholder="Search subscriptions, invoices...">
         </div>
-        <div class="card">
-          <div class="card-header"><div><div class="card-title">Subscription Status</div><div class="card-subtitle">Distribution breakdown</div></div></div>
-          <div class="card-body"><div class="chart-wrapper"><canvas id="status-chart"></canvas></div></div>
+        <div class="topbar-actions">
+          <div style="position:relative">
+            <button class="topbar-icon-btn" id="notif-bell-btn" title="Notifications">🔔<span class="notif-badge"
+                id="notif-count" style="display:none">0</span></button>
+            <div class="notif-dropdown" id="notif-dropdown">
+              <div class="notif-dropdown-header">
+                <h3>Notifications</h3><button class="btn btn-ghost btn-xs" onclick="NotifManager.markAllRead()">Mark all
+                  read</button>
+              </div>
+              <div class="notif-dropdown-body" id="notif-dropdown-body">
+                <div class="notif-empty">Loading...</div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
+      <main class="page-content">
+        <div class="page-header">
+          <h1 id="dashboard-title">Overview</h1>
+          <p class="text-muted" id="dashboard-sub">Real-time subscription metrics</p>
+        </div>
 
-      <!-- Bottom Row -->
-      <div class="grid-2">
-        <!-- Top Customers -->
-        <div class="card" id="top-customers-card" style="display:none">
-          <div class="card-header"><div class="card-title">Top Customers</div><a href="/reports.html" style="font-size:13px">View all →</a></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Customer</th><th>Revenue</th><th>Subs</th></tr></thead>
-              <tbody id="top-customers-body"></tbody>
-            </table>
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon blue">🔄</div>
+            <div class="kpi-info">
+              <div class="kpi-value skeleton" style="width:80px;height:32px"></div>
+              <div class="kpi-label">Active Subscriptions</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon green">💰</div>
+            <div class="kpi-info">
+              <div class="kpi-value skeleton" style="width:80px;height:32px"></div>
+              <div class="kpi-label">Monthly Revenue (MRR)</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon purple">💳</div>
+            <div class="kpi-info">
+              <div class="kpi-value skeleton" style="width:80px;height:32px"></div>
+              <div class="kpi-label">Payments This Month</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon red">⚠️</div>
+            <div class="kpi-info">
+              <div class="kpi-value skeleton" style="width:80px;height:32px"></div>
+              <div class="kpi-label">Overdue Invoices</div>
+            </div>
           </div>
         </div>
 
-        <!-- My Subscriptions (Portal) -->
-        <div class="card" id="my-subs-card" style="display:none">
-          <div class="card-header"><div class="card-title">My Subscriptions</div><a href="/subscriptions.html" style="font-size:13px">View all →</a></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Plan</th><th>Status</th><th>Next Billing</th></tr></thead>
-              <tbody id="my-subs-body"></tbody>
-            </table>
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Revenue Trend</div>
+                <div class="card-subtitle">Last 6 months</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-wrapper"><canvas id="revenue-chart"></canvas></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Subscription Status</div>
+                <div class="card-subtitle">Distribution breakdown</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-wrapper"><canvas id="status-chart"></canvas></div>
+            </div>
           </div>
         </div>
 
-        <!-- Recent Invoices -->
-        <div class="card">
-          <div class="card-header"><div class="card-title">Recent Invoices</div><a href="/invoices.html" style="font-size:13px">View all →</a></div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Invoice</th><th>Amount</th><th>Status</th></tr></thead>
-              <tbody id="recent-invoices-body"><tr><td colspan="3" class="table-empty"><div class="loading-spinner" style="margin:0 auto"></div></td></tr></tbody>
-            </table>
+        <div class="grid-2">
+          <div class="card" id="top-customers-card" style="display:none">
+            <div class="card-header">
+              <div class="card-title">Top Customers</div><a href="/reports.html" style="font-size:13px">View all →</a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Customer</th>
+                    <th>Revenue</th>
+                    <th>Subs</th>
+                  </tr>
+                </thead>
+                <tbody id="top-customers-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card" id="my-subs-card" style="display:none">
+            <div class="card-header">
+              <div class="card-title">My Subscriptions</div><a href="/subscriptions.html" style="font-size:13px">View
+                all →</a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Next Billing</th>
+                  </tr>
+                </thead>
+                <tbody id="my-subs-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Invoices</div><a href="/invoices.html" style="font-size:13px">View all
+                →</a>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Invoice</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-invoices-body">
+                  <tr>
+                    <td colspan="3" class="table-empty">
+                      <div class="loading-spinner" style="margin:0 auto"></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
-</div>
-<div id="toast-container"></div>
-<script src="/js/app.js"></script>
-<script>
-if (!requireAuth()) throw new Error('Unauthorized');
+  <div id="toast-container"></div>
+  <script src="/js/app.js"></script>
+  <script>
+    if (!requireAuth()) throw new Error('Unauthorized');
 
-const user = Auth.getUser();
-let revenueChartInst, statusChartInst;
+    const user = Auth.getUser();
+    let revenueChartInst, statusChartInst;
 
-async function loadDashboard() {
-  try {
-    const res = await API.get('/reports/dashboard');
-    const d = res.data;
+    async function loadDashboard() {
+      try {
+        const res = await API.get('/reports/dashboard');
+        const d = res.data;
 
-    // KPI Cards
-    document.getElementById('kpi-grid').innerHTML = `
+        document.getElementById('kpi-grid').innerHTML = `
       <div class="kpi-card"><div class="kpi-icon blue">🔄</div><div class="kpi-info"><div class="kpi-value">${fmt.number(d.activeSubscriptions)}</div><div class="kpi-label">Active Subscriptions</div></div></div>
-      <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(d.mrr)}</div><div class="kpi-label">Monthly Revenue (MRR)</div></div></div>
-      <div class="kpi-card"><div class="kpi-icon purple">💳</div><div class="kpi-info"><div class="kpi-value" style="font-size:20px">${fmt.currency(d.monthlyPayments)}</div><div class="kpi-label">Payments This Month</div></div></div>
-      <div class="kpi-card ${d.overdueInvoices > 0 ? '' : ''}"><div class="kpi-icon red">⚠️</div><div class="kpi-info"><div class="kpi-value">${fmt.number(d.overdueInvoices)}</div><div class="kpi-label">Overdue Invoices</div></div></div>`;
+      <div class="kpi-card"><div class="kpi-icon green">💰</div><div class="kpi-info"><div class="kpi-value" style="font-size:22px">${fmt.currency(d.mrr)}</div><div class="kpi-label">Monthly Revenue (MRR)</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon purple">💳</div><div class="kpi-info"><div class="kpi-value" style="font-size:22px">${fmt.currency(d.monthlyPayments)}</div><div class="kpi-label">Payments This Month</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon red">⚠️</div><div class="kpi-info"><div class="kpi-value">${fmt.number(d.overdueInvoices)}</div><div class="kpi-label">Overdue Invoices</div></div></div>`;
 
-    // Revenue Chart
-    const ctx1 = document.getElementById('revenue-chart').getContext('2d');
-    if (revenueChartInst) revenueChartInst.destroy();
-    revenueChartInst = new Chart(ctx1, {
-      type: 'bar',
-      data: {
-        labels: d.revenueChart.map(r => r.month),
-        datasets: [{ label: 'Revenue (₹)', data: d.revenueChart.map(r => r.revenue), backgroundColor: 'rgba(59,130,246,0.8)', borderRadius: 6, borderSkipped: false }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F1F5F9' }, ticks: { callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } }, x: { grid: { display: false } } } }
-    });
+        const ctx1 = document.getElementById('revenue-chart').getContext('2d');
+        if (revenueChartInst) revenueChartInst.destroy();
+        revenueChartInst = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: d.revenueChart.map(r => r.month),
+            datasets: [{ label: 'Revenue (₹)', data: d.revenueChart.map(r => r.revenue), backgroundColor: 'rgba(124,58,237,0.75)', borderRadius: 8, borderSkipped: false }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F0ECF5' }, ticks: { callback: v => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) } }, x: { grid: { display: false } } } }
+        });
 
-    // Status Chart
-    const ctx2 = document.getElementById('status-chart').getContext('2d');
-    if (statusChartInst) statusChartInst.destroy();
-    const statuses = d.statusBreakdown || [];
-    statusChartInst = new Chart(ctx2, {
-      type: 'doughnut',
-      data: {
-        labels: statuses.map(s => s.status),
-        datasets: [{ data: statuses.map(s => s.count), backgroundColor: statuses.map(s => STATUS_COLORS[s.status] || '#94A3B8'), borderWidth: 3, borderColor: '#fff' }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } } }, cutout: '62%' }
-    });
+        const ctx2 = document.getElementById('status-chart').getContext('2d');
+        if (statusChartInst) statusChartInst.destroy();
+        const statuses = d.statusBreakdown || [];
+        statusChartInst = new Chart(ctx2, {
+          type: 'doughnut',
+          data: {
+            labels: statuses.map(s => s.status),
+            datasets: [{ data: statuses.map(s => s.count), backgroundColor: statuses.map(s => STATUS_COLORS[s.status] || '#9F93B8'), borderWidth: 3, borderColor: '#fff' }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 14, font: { size: 12, weight: 500 } } } }, cutout: '65%' }
+        });
 
-    // Top Customers (Admin/Internal)
-    if (user.role !== 'PORTAL' && d.topCustomers && d.topCustomers.length > 0) {
-      document.getElementById('top-customers-card').style.display = '';
-      document.getElementById('top-customers-body').innerHTML = d.topCustomers.map(c => `
+        if (user.role !== 'PORTAL' && d.topCustomers && d.topCustomers.length > 0) {
+          document.getElementById('top-customers-card').style.display = '';
+          document.getElementById('top-customers-body').innerHTML = d.topCustomers.map(c => `
         <tr><td><div style="font-weight:600">${c.name || '—'}</div><div style="font-size:12px;color:var(--text-muted)">${c.email || ''}</div></td>
         <td class="text-mono">${fmt.currency(c.totalRevenue)}</td>
         <td><span class="badge badge-active">${c.subscriptionCount}</span></td></tr>`).join('');
-    }
+        }
 
-    // My Subs (Portal)
-    if (user.role === 'PORTAL') {
-      document.getElementById('my-subs-card').style.display = '';
-      const subRes = await API.get('/subscriptions?limit=5');
-      document.getElementById('my-subs-body').innerHTML = subRes.data.length
-        ? subRes.data.map(s => `<tr>
+        if (user.role === 'PORTAL') {
+          document.getElementById('my-subs-card').style.display = '';
+          const subRes = await API.get('/subscriptions?limit=5');
+          document.getElementById('my-subs-body').innerHTML = subRes.data.length
+            ? subRes.data.map(s => `<tr>
             <td><a href="/subscriptions-detail.html?id=${s.id}" style="font-weight:600">${s.plan?.name || '—'}</a></td>
             <td>${fmt.badge(s.isPaused ? 'PAUSED' : s.status)}</td>
             <td style="font-size:12.5px">${fmt.date(s.nextBillingDate)}</td></tr>`).join('')
-        : '<tr><td colspan="3" class="table-empty"><p>No subscriptions yet</p></td></tr>';
-    }
+            : '<tr><td colspan="3" class="table-empty"><p>No subscriptions yet</p></td></tr>';
+        }
 
-    // Recent Invoices
-    const invRes = await API.get('/invoices?limit=5');
-    document.getElementById('recent-invoices-body').innerHTML = invRes.data.length
-      ? invRes.data.map(i => `<tr>
+        const invRes = await API.get('/invoices?limit=5');
+        document.getElementById('recent-invoices-body').innerHTML = invRes.data.length
+          ? invRes.data.map(i => `<tr>
           <td><a href="/invoices-detail.html?id=${i.id}" style="font-weight:600;font-family:var(--font-mono)">${i.invoiceNumber}</a></td>
           <td class="text-mono">${fmt.currency(i.total)}</td>
           <td>${fmt.badge(i.status)}</td></tr>`).join('')
-      : '<tr><td colspan="3" class="table-empty"><p>No invoices</p></td></tr>';
+          : '<tr><td colspan="3" class="table-empty"><p>No invoices</p></td></tr>';
 
-  } catch (err) {
-    Toast.error('Failed to load dashboard: ' + err.message);
-  }
-}
+      } catch (err) {
+        Toast.error('Failed to load dashboard: ' + err.message);
+      }
+    }
 
-loadDashboard();
-</script>
+    loadDashboard();
+  </script>
 </body>
+
 </html>

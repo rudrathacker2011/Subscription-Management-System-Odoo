@@ -2,17 +2,11 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole, JWT_SECRET } = require('../middleware/auth');
+const { sendPasswordResetEmail } = require('../services/email');
 
 const router = express.Router();
-
-// --- EMAIL TRANSPORTER ---
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_FROM, pass: process.env.EMAIL_PASSWORD }
-});
 
 function generateTokens(user) {
     const payload = { id: user.id, email: user.email, name: user.name, role: user.role };
@@ -131,12 +125,7 @@ router.post('/forgot-password', async (req, res) => {
         await prisma.user.update({ where: { id: user.id }, data: { resetToken: token, resetTokenExpiry: expiry } });
 
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password.html?token=${token}`;
-        await transporter.sendMail({
-            from: process.env.EMAIL_FROM,
-            to: email,
-            subject: 'Password Reset — SubsManager',
-            html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. Link expires in 1 hour.</p>`
-        });
+        await sendPasswordResetEmail(user, token);
 
         res.json({ success: true, message: 'Password reset email sent.' });
     } catch (err) {

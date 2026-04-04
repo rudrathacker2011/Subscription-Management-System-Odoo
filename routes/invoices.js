@@ -1,14 +1,9 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
 const prisma = require('../lib/prisma');
 const { requireAuth, requireRole, requireOwnershipOrAdmin } = require('../middleware/auth');
+const { sendInvoiceEmail } = require('../services/email');
 
 const router = express.Router();
-
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.EMAIL_FROM, pass: process.env.EMAIL_PASSWORD }
-});
 
 function generateInvNumber() {
     const year = new Date().getFullYear();
@@ -172,12 +167,7 @@ router.post('/:id/send-email', requireAuth, requireRole(['ADMIN', 'INTERNAL']), 
         });
         if (!invoice) return res.status(404).json({ success: false, error: 'Invoice not found.' });
 
-        await transporter.sendMail({
-            from: process.env.EMAIL_FROM,
-            to: invoice.customer.email,
-            subject: `Invoice ${invoice.invoiceNumber} — ₹${invoice.total.toFixed(2)} Due`,
-            html: `<h2>Invoice ${invoice.invoiceNumber}</h2><p>Dear ${invoice.customer.name},</p><p>Your invoice of <strong>₹${invoice.total.toFixed(2)}</strong> is due on ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}.</p><p>Please log in to your portal to view and pay.</p>`
-        });
+        await sendInvoiceEmail(invoice, invoice.customer);
 
         res.json({ success: true, message: 'Invoice email sent.' });
     } catch (err) {
