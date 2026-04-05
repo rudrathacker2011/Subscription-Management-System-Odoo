@@ -55,7 +55,7 @@ router.get('/', requireAuth, requireOwnershipOrAdmin, async (req, res) => {
 // POST /api/subscriptions (Admin/Internal create)
 router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, res) => {
     try {
-        const { customerId, planId, startDate, paymentTerms, lineItems, templateId } = req.body;
+        const { customerId, planId, startDate, paymentTerms, lineItems, templateId, couponCode } = req.body;
         if (!customerId || !planId || !startDate)
             return res.status(400).json({ success: false, error: 'Customer, plan, and start date are required.' });
 
@@ -81,10 +81,41 @@ router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, re
             if (!exists) unique = true;
         }
 
+        // Handle Coupon
+        let discountId = null;
+        if (couponCode) {
+            const discount = await prisma.discount.findUnique({ where: { code: couponCode.toUpperCase() } });
+            if (discount && discount.isActive) {
+                const now = new Date();
+                const isValid = (!discount.startDate || discount.startDate <= now) &&
+                                (!discount.endDate || discount.endDate >= now) &&
+                                (!discount.limitUsage || discount.currentUsage < discount.limitUsage);
+                
+                if (isValid) {
+                    discountId = discount.id;
+                    // Increment usage
+                    await prisma.discount.update({ where: { id: discount.id }, data: { currentUsage: { increment: 1 } } });
+                }
+            }
+        }
+
+        // Always include active taxes
+        const activeTaxes = await prisma.tax.findMany({ where: { isActive: true } });
+
         const processedLineItems = resolvedLineItems.map(item => {
             const qty = parseInt(item.quantity) || 1;
             const price = parseFloat(item.unitPrice) || 0;
-            return { productId: item.productId, variantId: item.variantId || null, quantity: qty, unitPrice: price, lineTotal: qty * price, discountId: item.discountId || null };
+            return { 
+                productId: item.productId, 
+                variantId: item.variantId || null, 
+                quantity: qty, 
+                unitPrice: price, 
+                lineTotal: qty * price, 
+                discountId: item.discountId || discountId,
+                taxes: {
+                    create: activeTaxes.map(t => ({ taxId: t.id }))
+                }
+            };
         });
 
         const subscription = await prisma.subscription.create({
@@ -97,7 +128,7 @@ router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, re
                 createdById: req.user.id,
                 lineItems: { create: processedLineItems }
             },
-            include: { customer: { select: { id: true, name: true, email: true } }, plan: true, lineItems: { include: { product: true } } }
+            include: { customer: { select: { id: true, name: true, email: true } }, plan: true, lineItems: { include: { product: true, taxes: { include: { tax: true } } } } }
         });
 
         res.status(201).json({ success: true, data: subscription });
@@ -114,12 +145,37 @@ router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, re
 // POST /api/subscriptions/request — Portal user requests subscription
 router.post('/request', requireAuth, async (req, res) => {
     try {
-        const { planId, lineItems } = req.body;
+        const { planId, lineItems, couponCode } = req.body;
         if (!planId || !lineItems || lineItems.length === 0)
             return res.status(400).json({ success: false, error: 'Plan and at least one product are required.' });
 
         const plan = await prisma.recurringPlan.findUnique({ where: { id: planId } });
         if (!plan) return res.status(404).json({ success: false, error: 'Plan not found.' });
+
+        // Handle Coupon
+        let discountId = null;
+        if (couponCode) {
+            const discount = await prisma.discount.findUnique({ where: { code: couponCode.toUpperCase() } });
+            if (discount && discount.isActive) {
+                const now = new Date();
+                const isValid = (!discount.startDate || discount.startDate <= now) &&
+                                (!discount.endDate || discount.endDate >= now) &&
+                                (!discount.limitUsage || discount.currentUsage < discount.limitUsage);
+                
+                if (isValid) {
+                    discountId = discount.id;
+                    // Increment usage
+                    await prisma.discount.update({ where: { id: discount.id }, data: { currentUsage: { increment: 1 } } });
+                } else {
+                    return res.status(400).json({ success: false, error: 'Invalid or expired coupon code.' });
+                }
+            } else {
+                return res.status(400).json({ success: false, error: 'Invalid coupon code.' });
+            }
+        }
+
+        // Always include active taxes
+        const activeTaxes = await prisma.tax.findMany({ where: { isActive: true } });
 
         const start = new Date();
         const nextBilling = calculateNextBillingDate(plan.billingPeriod, start);
@@ -143,7 +199,11 @@ router.post('/request', requireAuth, async (req, res) => {
                 variantId: item.variantId || null,
                 quantity: qty,
                 unitPrice: price,
-                lineTotal: qty * price
+                lineTotal: qty * price,
+                discountId: discountId, // Apply same coupon to all items
+                taxes: {
+                    create: activeTaxes.map(t => ({ taxId: t.id }))
+                }
             });
         }
 
@@ -161,7 +221,7 @@ router.post('/request', requireAuth, async (req, res) => {
                 createdById: req.user.id,
                 lineItems: { create: processedLineItems }
             },
-            include: { customer: { select: { id: true, name: true, email: true } }, plan: true, lineItems: { include: { product: true } } }
+            include: { customer: { select: { id: true, name: true, email: true } }, plan: true, lineItems: { include: { product: true, taxes: { include: { tax: true } } } } }
         });
 
         // Notify all admins

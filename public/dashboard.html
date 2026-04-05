@@ -208,7 +208,7 @@
             responsive: true, 
             maintainAspectRatio: false, 
             plugins: { 
-              legend: { display: true, labels: { color: '#1F2937', font: { size: 14 } } }
+              legend: { display: true, labels: { color: '#1F2937', font: { size: 14 }, usePointStyle: true, pointStyle: 'circle' } }
             }, 
             scales: { 
               y: { 
@@ -232,7 +232,7 @@
             labels: statuses.map(s => s.status),
             datasets: [{ data: statuses.map(s => s.count), backgroundColor: statuses.map(s => STATUS_COLORS[s.status] || '#9F93B8'), borderWidth: 3, borderColor: '#fff' }]
           },
-          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 14, font: { size: 12, weight: 500 } } } }, cutout: '65%' }
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 14, font: { size: 12, weight: 500 }, usePointStyle: true, pointStyle: 'circle' } } }, cutout: '65%' }
         });
 
         if (user.role !== 'PORTAL' && d.topCustomers && d.topCustomers.length > 0) {

@@ -30,7 +30,7 @@ router.get('/', requireAuth, requireOwnershipOrAdmin, async (req, res) => {
             prisma.payment.findMany({
                 where,
                 include: {
-                    invoice: { select: { invoiceNumber: true, total: true } },
+                    invoice: { select: { id: true, invoiceNumber: true, total: true } },
                     customer: { select: { id: true, name: true, email: true } }
                 },
                 skip, take: parseInt(limit), orderBy: { createdAt: 'desc' }

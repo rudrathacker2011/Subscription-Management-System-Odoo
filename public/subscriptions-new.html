@@ -124,8 +124,23 @@
               <div id="line-items-container"></div>
               <button class="btn btn-outline btn-sm mt-1" onclick="addLineItem()">+ Add Product</button>
 
+              <div class="mt-3 pt-2" style="border-top: 1px dashed var(--border)">
+                <div class="form-group" style="max-width: 300px; margin-left: auto;">
+                  <label class="form-label" style="font-size: 11px; text-transform: uppercase; color: var(--text-muted)">Have a Coupon?</label>
+                  <div class="input-group">
+                    <input type="text" id="f-coupon" class="form-input" placeholder="Enter code..." style="text-transform: uppercase">
+                    <button class="btn btn-outline btn-sm" onclick="validateCoupon()" id="coupon-btn">Apply</button>
+                  </div>
+                  <div id="coupon-msg" style="font-size: 12px; margin-top: 4px; display: none;"></div>
+                </div>
+              </div>
+
               <div class="totals-box" style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2);">
                 <div class="totals-row"><span>Subtotal</span><span class="text-mono" id="t-subtotal">$0.00</span></div>
+                <div class="totals-row" id="row-discount" style="display:none; color: var(--success)">
+                  <span>Discount</span><span class="text-mono" id="t-discount">-$0.00</span>
+                </div>
+                <div class="totals-row"><span>Tax (Estimated)</span><span class="text-mono" id="t-tax">$0.00</span></div>
                 <div class="totals-row grand-total" style="border-top-color: rgba(139, 92, 246, 0.2)"><span>Total</span><span class="text-mono text-primary"
                     id="t-total" style="font-size: 22px">$0.00</span></div>
               </div>
@@ -149,17 +164,24 @@
 
     const urlId = new URLSearchParams(location.search).get('id');
     let db = { customers: [], plans: [], products: [], templates: [] };
+    let activeTaxes = [];
+    let currentDiscount = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('f-start').value = new Date().toISOString().split('T')[0];
       try {
-        const [custRes, planRes, prodRes, tplRes] = await Promise.all([
-          API.get('/users?role=PORTAL&limit=100'), API.get('/plans'), API.get('/products'), API.get('/quotation-templates')
+        const [custRes, planRes, prodRes, tplRes, taxRes] = await Promise.all([
+          API.get('/users?role=PORTAL&limit=100'), 
+          API.get('/plans'), 
+          API.get('/products'), 
+          API.get('/quotation-templates'),
+          API.get('/taxes')
         ]);
         db.customers = custRes.data;
         db.plans = planRes.data;
         db.products = prodRes.data.filter(p => p.isActive);
         db.templates = tplRes.data.filter(t => t.isActive);
+        activeTaxes = taxRes.data.filter(t => t.isActive);
 
         document.getElementById('f-customer').innerHTML = '<option value="">-- Select Customer --</option>' + db.customers.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
         document.getElementById('f-plan').innerHTML = '<option value="">-- Select Plan --</option>' + db.plans.map(p => `<option value="${p.id}">${p.name} - ${fmt.currency(p.price)}</option>`).join('');
@@ -172,6 +194,45 @@
         document.getElementById('form-content').style.display = '';
       } catch (err) { Toast.error('Failed to load form data: ' + err.message); }
     });
+
+    async function validateCoupon() {
+      const code = document.getElementById('f-coupon').value.trim();
+      const msg = document.getElementById('coupon-msg');
+      const btn = document.getElementById('coupon-btn');
+      
+      if (!code) {
+        currentDiscount = null;
+        msg.style.display = 'none';
+        updateTotals();
+        return;
+      }
+
+      let subtotal = 0;
+      document.querySelectorAll('.line-item-row').forEach(row => {
+        subtotal += (parseInt(row.querySelector('.item-qty').value) || 0) * (parseFloat(row.querySelector('.item-price').value) || 0);
+      });
+
+      try {
+        btn.disabled = true;
+        btn.textContent = '...';
+        const res = await API.post('/discounts/validate', { code, amount: subtotal });
+        currentDiscount = res.discount;
+        msg.textContent = `✅ Applied: ${res.discount.name}`;
+        msg.className = 'text-success';
+        msg.style.display = 'block';
+        Toast.success('Coupon applied!');
+        updateTotals();
+      } catch (err) {
+        currentDiscount = null;
+        msg.textContent = `❌ ${err.message}`;
+        msg.className = 'text-danger';
+        msg.style.display = 'block';
+        updateTotals();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply';
+      }
+    }
 
     async function loadExistingSub() {
       document.getElementById('page-title').textContent = 'Edit Draft';
@@ -233,8 +294,30 @@
         row.querySelector('.item-total').textContent = fmt.currency(tot);
         subtotal += tot;
       });
+
+      let discountVal = 0;
+      if (currentDiscount) {
+        discountVal = currentDiscount.discountType === 'PERCENTAGE' 
+          ? subtotal * (currentDiscount.value / 100)
+          : currentDiscount.value;
+        discountVal = Math.min(discountVal, subtotal);
+        document.getElementById('row-discount').style.display = 'flex';
+        document.getElementById('t-discount').textContent = `-${fmt.currency(discountVal)}`;
+      } else {
+        document.getElementById('row-discount').style.display = 'none';
+      }
+
+      const taxableAmount = subtotal - discountVal;
+      let taxVal = 0;
+      activeTaxes.forEach(t => {
+        taxVal += taxableAmount * (t.percentage / 100);
+      });
+
+      const grandTotal = taxableAmount + taxVal;
+
       document.getElementById('t-subtotal').textContent = fmt.currency(subtotal);
-      document.getElementById('t-total').textContent = fmt.currency(subtotal); /* Taxes/Discounts handled by backend later */
+      document.getElementById('t-tax').textContent = fmt.currency(taxVal);
+      document.getElementById('t-total').textContent = fmt.currency(grandTotal);
     }
 
     async function saveSubscription() {
@@ -243,6 +326,7 @@
         planId: document.getElementById('f-plan').value,
         startDate: document.getElementById('f-start').value,
         paymentTerms: document.getElementById('f-terms').value,
+        couponCode: document.getElementById('f-coupon').value.trim().toUpperCase() || null,
         lineItems: []
       };
 

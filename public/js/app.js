@@ -276,37 +276,18 @@ function buildSidebar() {
         <nav class="sidebar-nav">${navHtml}</nav>
         <div class="sidebar-footer">
             <div class="sidebar-user" id="sidebar-user-block" style="position: relative; cursor: pointer;">
-                <div class="sidebar-avatar">${initials}</div>
-                <div class="sidebar-user-info">
+                <div class="sidebar-avatar" onclick="window.location.href='/profile.html'">${initials}</div>
+                <div class="sidebar-user-info" onclick="window.location.href='/profile.html'">
                     <div class="sidebar-user-name">${user.name}</div>
                     <div class="sidebar-user-role">${user.role}</div>
                 </div>
                 <button class="sidebar-logout-btn" onclick="logout()" title="Logout">${ICONS.logout}</button>
-                <div class="sidebar-profile-dropdown form-with-spark" style="display: none; position: absolute; bottom: 100%; left: 0; right: 0; margin-bottom: 10px; background: white; padding: 16px; border-radius: 12px; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.2); color: #1E1033; cursor: default;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-                        <div class="sidebar-avatar" style="width: 48px; height: 48px; font-size: 18px;">${initials}</div>
-                        <div>
-                            <div style="font-weight: 700; color: #1E1033;">${user.name}</div>
-                            <div style="font-size: 13px; color: #64588A;">${user.email || user.name.split(' ').join('.').toLowerCase() + '@company.com'}</div>
-                            <div style="font-size: 11px; background: rgba(124, 58, 237, 0.1); color: #7C3AED; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; font-weight: 600;">${user.role}</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <a href="/profile.html" style="padding: 8px; border-radius: 8px; color: #1E1033; text-decoration: none; display: block; background: #F5F3FF; text-align: center; font-weight: 600; font-size: 13px;">View Profile</a>
-                        <button onclick="logout()" style="padding: 8px; border-radius: 8px; color: #EF4444; background: #FEF2F2; border: none; width: 100%; font-weight: 600; font-size: 13px; cursor: pointer;">Sign Out</button>
-                    </div>
-                </div>
             </div>
         </div>`;
 
         const savedScroll = sessionStorage.getItem('sidebarScrollPos');
         if (savedScroll) requestAnimationFrame(() => sidebar.scrollTop = parseInt(savedScroll, 10));
         sidebar.addEventListener('scroll', () => sessionStorage.setItem('sidebarScrollPos', sidebar.scrollTop));
-
-        const userBlock = document.getElementById('sidebar-user-block');
-        const dropdown = userBlock.querySelector('.sidebar-profile-dropdown');
-        userBlock.addEventListener('mouseenter', () => dropdown.style.display = 'block');
-        userBlock.addEventListener('mouseleave', () => dropdown.style.display = 'none');
     }
 }
 

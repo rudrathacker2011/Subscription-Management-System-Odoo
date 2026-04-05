@@ -52,7 +52,7 @@ async function generateInvoiceForSubscription(subscriptionId) {
         if (item.taxes && item.taxes.length > 0) {
             for (const t of item.taxes) {
                 if (t.tax && t.tax.isActive) {
-                    lineTax += lineAfterDiscount * (t.tax.rate / 100);
+                    lineTax += lineAfterDiscount * (t.tax.percentage / 100);
                 }
             }
         }

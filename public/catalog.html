@@ -80,10 +80,26 @@
           <label class="form-label">Select Plan <span class="required">*</span></label>
           <select class="form-select" id="cart-plan"></select>
         </div>
-        <div class="detail-section-title mt-2">Selected Products</div>
         <div id="cart-items"></div>
-        <div style="text-align:right;margin-top:16px">
-          <strong>Estimated Total: <span id="cart-total" class="text-primary">$0.00</span></strong>
+        <div class="mt-2 pt-2" style="border-top:1px dashed var(--border)">
+          <div class="form-group" style="max-width: 250px; margin-left: auto;">
+            <label class="form-label" style="font-size: 11px; text-transform: uppercase;">Have a Coupon?</label>
+            <div class="input-group">
+              <input type="text" id="cart-coupon" class="form-input" placeholder="Code..." style="text-transform: uppercase">
+              <button class="btn btn-outline btn-sm" onclick="validateCartCoupon()" id="coupon-btn">Apply</button>
+            </div>
+            <div id="coupon-msg" style="font-size: 11px; margin-top: 4px; display: none;"></div>
+          </div>
+        </div>
+        <div class="totals-box mt-1" style="background:transparent; padding: 0; width: 100%">
+          <div class="totals-row" style="margin-bottom:4px"><span>Subtotal</span><span id="summ-sub">$0.00</span></div>
+          <div class="totals-row" id="row-discount" style="display:none; color: var(--success); margin-bottom:4px">
+            <span>Discount</span><span id="summ-discount">-$0.00</span>
+          </div>
+          <div class="totals-row" style="margin-bottom:4px"><span>Tax (Estimated)</span><span id="summ-tax">$0.00</span></div>
+          <div class="totals-row grand-total" style="font-size: 20px; color: var(--primary); border-top: 1px solid var(--border); padding-top: 8px;">
+            <span>Total</span><span id="cart-total">$0.00</span>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -100,6 +116,8 @@
 
     let products = [], plans = [], cart = [];
     let planSelectUI;
+    let activeTaxes = [];
+    let currentDiscount = null;
 
     async function loadCatalog() {
       try {
@@ -109,9 +127,13 @@
         if (search) url += `search=${encodeURIComponent(search)}&`;
         if (type) url += `type=${type}`;
 
-        const res = await API.get(url);
-        products = res.data.products;
-        plans = res.data.plans;
+        const [catRes, taxRes] = await Promise.all([
+          API.get(url),
+          API.get('/taxes')
+        ]);
+        products = catRes.data.products;
+        plans = catRes.data.plans;
+        activeTaxes = taxRes.data.filter(t => t.isActive);
         renderProducts();
       } catch (err) {
         Toast.error('Failed to load catalog: ' + err.message);
@@ -173,10 +195,10 @@
     }
 
     function renderCartItems() {
-      let total = 0;
+      let subtotal = 0;
       document.getElementById('cart-items').innerHTML = cart.map((item, i) => {
         const lineTotal = item.product.salesPrice * item.quantity;
-        total += lineTotal;
+        subtotal += lineTotal;
         return `
     <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
       <div style="flex:1">
@@ -188,7 +210,66 @@
       <button class="btn btn-ghost btn-xs" onclick="removeFromCart(${i})">✕</button>
     </div>`;
       }).join('');
-      document.getElementById('cart-total').textContent = fmt.currency(total);
+
+      let discountVal = 0;
+      if (currentDiscount) {
+        discountVal = currentDiscount.discountType === 'PERCENTAGE' 
+          ? subtotal * (currentDiscount.value / 100)
+          : currentDiscount.value;
+        discountVal = Math.min(discountVal, subtotal);
+        document.getElementById('row-discount').style.display = 'flex';
+        document.getElementById('summ-discount').textContent = `-${fmt.currency(discountVal)}`;
+      } else {
+        document.getElementById('row-discount').style.display = 'none';
+      }
+
+      const taxableAmount = subtotal - discountVal;
+      let taxVal = 0;
+      activeTaxes.forEach(t => {
+        taxVal += taxableAmount * (t.percentage / 100);
+      });
+
+      const grandTotal = taxableAmount + taxVal;
+
+      document.getElementById('summ-sub').textContent = fmt.currency(subtotal);
+      document.getElementById('summ-tax').textContent = fmt.currency(taxVal);
+      document.getElementById('cart-total').textContent = fmt.currency(grandTotal);
+    }
+
+    async function validateCartCoupon() {
+      const code = document.getElementById('cart-coupon').value.trim();
+      const msg = document.getElementById('coupon-msg');
+      const btn = document.getElementById('coupon-btn');
+      
+      if (!code) {
+        currentDiscount = null;
+        msg.style.display = 'none';
+        renderCartItems();
+        return;
+      }
+
+      let subtotal = 0;
+      cart.forEach(item => subtotal += item.product.salesPrice * item.quantity);
+
+      try {
+        btn.disabled = true;
+        btn.textContent = '...';
+        const res = await API.post('/discounts/validate', { code, amount: subtotal });
+        currentDiscount = res.discount;
+        msg.textContent = `✅ ${res.discount.name}`;
+        msg.className = 'text-success';
+        msg.style.display = 'block';
+        renderCartItems();
+      } catch (err) {
+        currentDiscount = null;
+        msg.textContent = `❌ ${err.message}`;
+        msg.className = 'text-danger';
+        msg.style.display = 'block';
+        renderCartItems();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply';
+      }
     }
 
     function updateCartQty(index, qty) {
@@ -222,7 +303,11 @@
           quantity: c.quantity
         }));
 
-        const res = await API.post('/subscriptions/request', { planId, lineItems });
+        const res = await API.post('/subscriptions/request', { 
+          planId, 
+          lineItems,
+          couponCode: document.getElementById('cart-coupon').value.trim().toUpperCase() || null
+        });
         Toast.success('Subscription activated! Redirecting to payment...');
         Modal.hide('cart-modal');
         cart = [];

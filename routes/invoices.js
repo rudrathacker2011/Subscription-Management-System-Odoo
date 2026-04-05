@@ -40,7 +40,7 @@ router.get('/', requireAuth, requireOwnershipOrAdmin, async (req, res) => {
         const [invoices, total] = await Promise.all([
             prisma.invoice.findMany({
                 where,
-                include: { customer: { select: { id: true, name: true, email: true } }, subscription: { select: { subscriptionNumber: true } } },
+                include: { customer: { select: { id: true, name: true, email: true } }, subscription: { select: { id: true, subscriptionNumber: true } } },
                 skip, take: parseInt(limit), orderBy: { createdAt: 'desc' }
             }),
             prisma.invoice.count({ where })
@@ -56,7 +56,7 @@ router.get('/', requireAuth, requireOwnershipOrAdmin, async (req, res) => {
 // POST /api/invoices (manual creation)
 router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, res) => {
     try {
-        const { customerId, subscriptionId, notes, lineItems, paymentTerms } = req.body;
+        const { customerId, subscriptionId, notes, lineItems, paymentTerms, couponCode } = req.body;
         if (!customerId) return res.status(400).json({ success: false, error: 'Customer is required.' });
         if (!lineItems || lineItems.length === 0) return res.status(400).json({ success: false, error: 'At least one line item is required.' });
 
@@ -68,25 +68,68 @@ router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, re
             if (!exists) unique = true;
         }
 
+        // Handle Coupon
+        let discountId = null;
+        let couponDiscountAmount = 0;
+        if (couponCode) {
+            const discount = await prisma.discount.findUnique({ where: { code: couponCode.toUpperCase() } });
+            if (discount && discount.isActive) {
+                const now = new Date();
+                const isValid = (!discount.startDate || discount.startDate <= now) &&
+                                (!discount.endDate || discount.endDate >= now) &&
+                                (!discount.limitUsage || discount.currentUsage < discount.limitUsage);
+                
+                if (isValid) {
+                    discountId = discount.id;
+                    // Note: We'll calculate the actual discount below in the loop if needed, 
+                    // but usually manual invoices apply it to the whole thing.
+                    // Increment usage
+                    await prisma.discount.update({ where: { id: discount.id }, data: { currentUsage: { increment: 1 } } });
+                }
+            }
+        }
+
+        // Fetch active taxes
+        const activeTaxes = await prisma.tax.findMany({ where: { isActive: true } });
+
         let subtotal = 0, taxAmount = 0, discountAmount = 0;
         const processedLineItems = [];
 
         for (const item of lineItems) {
             const qty = parseInt(item.quantity) || 1;
             const price = parseFloat(item.unitPrice) || 0;
-            let lineTotal = qty * price;
+            let lineSubtotal = qty * price;
+            let lineDiscount = 0;
 
-            if (item.discountId) {
-                const disc = await prisma.discount.findUnique({ where: { id: item.discountId } });
+            const finalDiscountId = item.discountId || discountId;
+            if (finalDiscountId) {
+                const disc = await prisma.discount.findUnique({ where: { id: finalDiscountId } });
                 if (disc && disc.isActive) {
-                    const da = disc.discountType === 'PERCENTAGE' ? lineTotal * (disc.value / 100) : disc.value;
-                    discountAmount += da;
-                    lineTotal -= da;
+                    lineDiscount = disc.discountType === 'PERCENTAGE' ? lineSubtotal * (disc.value / 100) : disc.value;
                 }
             }
 
-            subtotal += qty * price;
-            processedLineItems.push({ productId: item.productId || null, description: item.description || '', quantity: qty, unitPrice: price, lineTotal, discountId: item.discountId || null });
+            const lineAfterDiscount = lineSubtotal - lineDiscount;
+            let lineTax = 0;
+            for (const t of activeTaxes) {
+                lineTax += lineAfterDiscount * (t.percentage / 100);
+            }
+
+            subtotal += lineSubtotal;
+            discountAmount += lineDiscount;
+            taxAmount += lineTax;
+
+            processedLineItems.push({ 
+                productId: item.productId || null, 
+                description: item.description || '', 
+                quantity: qty, 
+                unitPrice: price, 
+                lineTotal: lineAfterDiscount + lineTax, 
+                discountId: finalDiscountId,
+                taxes: {
+                    create: activeTaxes.map(t => ({ taxId: t.id }))
+                }
+            });
         }
 
         const total = subtotal + taxAmount - discountAmount;
@@ -97,7 +140,7 @@ router.post('/', requireAuth, requireRole(['ADMIN', 'INTERNAL']), async (req, re
                 dueDate: calcDueDate(paymentTerms || 'NET_30'),
                 lineItems: { create: processedLineItems }
             },
-            include: { customer: { select: { id: true, name: true, email: true } }, lineItems: true }
+            include: { customer: { select: { id: true, name: true, email: true } }, lineItems: { include: { taxes: { include: { tax: true } } } } }
         });
 
         res.status(201).json({ success: true, data: invoice });
@@ -117,7 +160,7 @@ router.get('/:id', requireAuth, requireOwnershipOrAdmin, async (req, res) => {
             where,
             include: {
                 customer: { select: { id: true, name: true, email: true, companyName: true, billingAddress: true } },
-                subscription: { select: { subscriptionNumber: true, plan: true } },
+                subscription: { select: { id: true, subscriptionNumber: true, plan: true } },
                 lineItems: { include: { product: true, discount: true, taxes: { include: { tax: true } } } },
                 payments: { orderBy: { createdAt: 'desc' } }
             }

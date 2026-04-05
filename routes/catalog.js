@@ -24,10 +24,11 @@ router.get('/', requireAuth, async (req, res) => {
         ]);
 
         const uniqueProducts = Array.from(new Map(rawProducts.map(p => [p.name, p])).values());
+        const uniquePlans = Array.from(new Map(plans.map(p => [p.name, p])).values());
 
         res.json({
             success: true,
-            data: { products: uniqueProducts, plans }
+            data: { products: uniqueProducts, plans: uniquePlans }
         });
     } catch (error) {
         console.error('[CATALOG ERROR]', error);

@@ -107,11 +107,24 @@
               <div class="card-body" style="background: rgba(139, 92, 246, 0.05);">
                 <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px">
                   <span>Subtotal</span><span class="text-mono" id="summ-sub">$0.00</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px;color: var(--success); display:none" id="row-discount">
+                  <span>Discount</span><span class="text-mono" id="summ-discount">-$0.00</span></div>
                 <div style="display:flex;justify-content:space-between;margin-bottom:16px;font-size:14px">
-                  <span>Tax</span><span class="text-mono">$0.00</span></div>
+                  <span>Tax (Estimated)</span><span class="text-mono" id="summ-tax">$0.00</span></div>
                 <div
                   style="display:flex;justify-content:space-between;border-top:1px solid rgba(139, 92, 246, 0.2);padding-top:12px;font-size:22px;font-weight:800;color:var(--primary)">
                   <span>Grand Total</span><span class="text-mono" id="summ-total">$0.00</span></div>
+
+                <div class="mt-3 pt-3" style="border-top: 1px dashed rgba(139, 92, 246, 0.2)">
+                  <div class="form-group">
+                    <label class="form-label" style="font-size: 11px; text-transform: uppercase;">Have a Coupon?</label>
+                    <div class="input-group">
+                      <input type="text" id="f-coupon" class="form-input" placeholder="Enter code..." style="text-transform: uppercase">
+                      <button class="btn btn-outline btn-sm" onclick="validateInvoiceCoupon()" id="coupon-btn">Apply</button>
+                    </div>
+                    <div id="coupon-msg" style="font-size: 11px; margin-top: 4px; display: none;"></div>
+                  </div>
+                </div>
 
                 <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px">
                   <button class="btn btn-primary w-full" style="justify-content:center;padding:12px;background: linear-gradient(135deg, #7C3AED, #F59E0B)"
@@ -130,20 +143,65 @@
     if (!requireAuth(['ADMIN', 'INTERNAL'])) throw new Error();
 
     let db = { customers: [], products: [] };
+    let activeTaxes = [];
+    let currentDiscount = null;
     let itemCount = 0;
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const [custRes, prodRes] = await Promise.all([
-          API.get('/users?role=PORTAL&limit=100'), API.get('/products')
+        const [custRes, prodRes, taxRes] = await Promise.all([
+          API.get('/users?role=PORTAL&limit=100'), 
+          API.get('/products'),
+          API.get('/taxes')
         ]);
-        db.customers = custRes.data; db.products = prodRes.data;
+        db.customers = custRes.data; 
+        db.products = prodRes.data;
+        activeTaxes = taxRes.data.filter(t => t.isActive);
 
         document.getElementById('f-customer').innerHTML = '<option value="">Select customer...</option>' + db.customers.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
 
         addLineItem();
       } catch (err) { Toast.error(err.message); }
     });
+
+    async function validateInvoiceCoupon() {
+      const code = document.getElementById('f-coupon').value.trim();
+      const msg = document.getElementById('coupon-msg');
+      const btn = document.getElementById('coupon-btn');
+      
+      if (!code) {
+        currentDiscount = null;
+        msg.style.display = 'none';
+        updateTotals();
+        return;
+      }
+
+      let subtotal = 0;
+      document.querySelectorAll('.line-item-row').forEach(row => {
+        subtotal += (parseInt(row.querySelector('.item-qty').value) || 0) * (parseFloat(row.querySelector('.item-price').value) || 0);
+      });
+
+      try {
+        btn.disabled = true;
+        btn.textContent = '...';
+        const res = await API.post('/discounts/validate', { code, amount: subtotal });
+        currentDiscount = res.discount;
+        msg.textContent = `✅ Applied: ${res.discount.name}`;
+        msg.className = 'text-success';
+        msg.style.display = 'block';
+        Toast.success('Coupon applied!');
+        updateTotals();
+      } catch (err) {
+        currentDiscount = null;
+        msg.textContent = `❌ ${err.message}`;
+        msg.className = 'text-danger';
+        msg.style.display = 'block';
+        updateTotals();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Apply';
+      }
+    }
 
     function addLineItem(prodId = '', qty = 1, price = null) {
       const container = document.getElementById('line-items-container');
@@ -186,8 +244,30 @@
         subtotal += lineTot;
         row.querySelector('.item-total').textContent = fmt.currency(lineTot);
       });
+
+      let discountVal = 0;
+      if (currentDiscount) {
+        discountVal = currentDiscount.discountType === 'PERCENTAGE' 
+          ? subtotal * (currentDiscount.value / 100)
+          : currentDiscount.value;
+        discountVal = Math.min(discountVal, subtotal);
+        document.getElementById('row-discount').style.display = 'flex';
+        document.getElementById('summ-discount').textContent = `-${fmt.currency(discountVal)}`;
+      } else {
+        document.getElementById('row-discount').style.display = 'none';
+      }
+
+      const taxableAmount = subtotal - discountVal;
+      let taxVal = 0;
+      activeTaxes.forEach(t => {
+        taxVal += taxableAmount * (t.percentage / 100);
+      });
+
+      const grandTotal = taxableAmount + taxVal;
+
       document.getElementById('summ-sub').textContent = fmt.currency(subtotal);
-      document.getElementById('summ-total').textContent = fmt.currency(subtotal);
+      document.getElementById('summ-tax').textContent = fmt.currency(taxVal);
+      document.getElementById('summ-total').textContent = fmt.currency(grandTotal);
     }
 
     async function saveInvoice() {
@@ -195,6 +275,7 @@
         customerId: document.getElementById('f-customer').value,
         paymentTerms: document.getElementById('f-terms').value,
         notes: document.getElementById('f-notes').value.trim() || null,
+        couponCode: document.getElementById('f-coupon').value.trim().toUpperCase() || null,
         lineItems: []
       };
 
